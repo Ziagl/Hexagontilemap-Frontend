@@ -28,9 +28,19 @@ export class Game extends Scene
 
         const cursors = this.input.keyboard!.createCursorKeys();
 
+        // creates a hexagonal marker based on tile size
         this.marker = this.add.graphics();
         this.marker.lineStyle(2, 0x000000, 1);
-        this.marker.strokeRect(0, 0, this.map.tileWidth, this.map.tileHeight);
+        this.marker.beginPath();
+        this.marker.moveTo(0, this.map.tileHeight / 4);
+        this.marker.lineTo(0, (this.map.tileHeight / 4) * 3);
+        this.marker.lineTo(this.map.tileWidth / 2, this.map.tileHeight);
+        this.marker.lineTo(this.map.tileWidth, (this.map.tileHeight / 4) * 3);
+        this.marker.lineTo(this.map.tileWidth, this.map.tileHeight / 4);
+        this.marker.lineTo(this.map.tileWidth / 2, 0);
+        this.marker.lineTo(0, this.map.tileHeight / 4);
+        this.marker.closePath();
+        this.marker.strokePath();
 
         this.cameras.main.setZoom(2);
         this.cameras.main.centerOn(200, 100);
@@ -51,7 +61,7 @@ export class Game extends Scene
         // mouse control
         this.input.on(Phaser.Input.Events.POINTER_UP, (pointer: Phaser.Input.Pointer) => {
             // const { worldX, worldY } = pointer;
-            // TODO        
+            // TODO
         });
         this.input.on(Phaser.Input.Events.POINTER_WHEEL, (pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number, deltaZ: number) => {
             // mouse wheel zooms map
