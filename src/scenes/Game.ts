@@ -2,6 +2,8 @@ import { Scene } from 'phaser';
 
 export class Game extends Scene
 {
+    private isDesktop = false;
+    private isAndroid = false;
     private controls:Phaser.Cameras.Controls.SmoothedKeyControl;
     private map: Phaser.Tilemaps.Tilemap;
     private marker: Phaser.GameObjects.Graphics;
@@ -10,6 +12,12 @@ export class Game extends Scene
     constructor ()
     {
         super('Game');
+    }
+
+    init()
+    {
+        this.isDesktop = this.sys.game.device.os.desktop;
+        this.isAndroid = this.sys.game.device.os.android;
     }
 
     preload ()
@@ -58,22 +66,33 @@ export class Game extends Scene
 
         this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(controlConfig);
 
-        // mouse control
-        this.input.on(Phaser.Input.Events.POINTER_UP, (pointer: Phaser.Input.Pointer) => {
-            // const { worldX, worldY } = pointer;
-            // TODO
-        });
-        this.input.on(Phaser.Input.Events.POINTER_WHEEL, (pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number, deltaZ: number) => {
-            // mouse wheel zooms map
-            let zoom = this.cameras.main.zoom;
-            zoom = zoom + deltaY * 0.001;
-            this.cameras.main.setZoom(zoom);
-        });
+        if(this.isDesktop || this.isAndroid)
+        {
+            // mouse control
+            this.input.on(Phaser.Input.Events.POINTER_UP, (pointer: Phaser.Input.Pointer) => {
+                // get the tile under the curser (can be null if outside map)
+                const tile = this.groundLayer.getTileAtWorldXY(pointer.position.x, pointer.position.y);
+                if (tile){
+                    
+                }
+            });
+            this.input.on(Phaser.Input.Events.POINTER_WHEEL, (pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number, deltaZ: number) => {
+                // mouse wheel zooms map
+                let zoom = this.cameras.main.zoom;
+                zoom = zoom + deltaY * 0.001;
+                this.cameras.main.setZoom(zoom);
+            });
+        }
+        if(this.isDesktop)
+        {
+            // keyboard control
+            this.input.keyboard!.on('keyup', this.anyKey, this);
 
-        // remember to clean up on Scene shutdown
-        this.events.on(Phaser.Scenes.Events.SHUTDOWN, () => {
-            this.input.off(Phaser.Input.Events.POINTER_UP)
-        });
+            // remember to clean up on Scene shutdown
+            this.events.on(Phaser.Scenes.Events.SHUTDOWN, () => {
+                this.input.off(Phaser.Input.Events.POINTER_UP)
+            });
+        }
     }
 
     update (time:number, delta:number)
@@ -92,6 +111,17 @@ export class Game extends Scene
             this.marker.alpha = 1; // sets marker visible
         } else {
             this.marker.alpha = 0; // sets marker invisible
+        }
+    }
+
+    anyKey (event: any)
+    {
+        let code = event.keyCode;
+
+        // if user clicks ESC
+        if (code === Phaser.Input.Keyboard.KeyCodes.ESC)
+        {
+            this.scene.start('MainMenu');
         }
     }
 }
