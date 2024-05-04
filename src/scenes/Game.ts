@@ -10,6 +10,9 @@ export class Game extends Scene
     private marker: Phaser.GameObjects.Graphics;
     private groundLayer: Phaser.Tilemaps.TilemapLayer;
     private menu: GameMenu;
+    private minimap: Phaser.Cameras.Scene2D.Camera;
+
+    
 
     constructor ()
     {
@@ -31,6 +34,11 @@ export class Game extends Scene
 
     create ()
     {
+        //  add a minimap that shows the map from a different zoom level
+        this.minimap = this.cameras.add(0, this.scale.height - (this.scale.height / 4), this.scale.width / 4, this.scale.height / 4).setZoom(1).setName('mini');
+        this.minimap.setBackgroundColor(0x002244);
+        this.minimap.centerOn(220, 120);
+
         // create map
         this.map = this.add.tilemap('map');
 
@@ -81,6 +89,7 @@ export class Game extends Scene
                     if(this.menu)
                     {
                         this.menu.setMenuVisible(true);
+                        this.menu.setTileImage(tile.index);
                     }
                 } else {
                     if(this.menu)

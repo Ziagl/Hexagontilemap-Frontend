@@ -34,13 +34,12 @@ export class MainMenu extends Scene
 
     create()
     {
-        const { width, height } = this.scale;
-        const buttonWidth = width / 7;
+        const buttonWidth = this.scale.width / 7;
         const buttonHeight = buttonWidth / 3;
         const buttonOffset = buttonHeight / 2;
 
         // create menu buttons
-        const playButton = this.add.image((width * 0.5), (height * 0.5) - ((buttonHeight * 3) / 2), this.buttonPanel)
+        const playButton = this.add.image((this.scale.width * 0.5), (this.scale.height * 0.5) - ((buttonHeight * 3) / 2), this.buttonPanel)
                                    .setDisplaySize(buttonWidth, buttonHeight);
         this.add.text(playButton.x, playButton.y, 'Play')
                 .setOrigin(0.5);
