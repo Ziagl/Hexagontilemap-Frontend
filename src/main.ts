@@ -1,5 +1,6 @@
-import { Game as GameScene } from './scenes/Game';
 import { MainMenu as MainMenuScene } from './scenes/MainMenu';
+import { Game as GameScene } from './scenes/Game';
+import { GameMenu as GameMenuScene } from './scenes/GameMenu';
 import { AUTO, Game, Scale,Types } from "phaser";
 
 //  Find out more information about the Game Config at:
@@ -17,7 +18,8 @@ const config: Types.Core.GameConfig = {
     },
     scene: [
         MainMenuScene,
-        GameScene
+        GameScene,
+        GameMenuScene
     ]
 };
 

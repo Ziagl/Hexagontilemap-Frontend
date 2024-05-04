@@ -128,6 +128,7 @@ export class MainMenu extends Scene
             console.log('credits');
         });
 
+        // remember to clean up on Scene shutdown
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             playButton.off('selected');
             settingsButton.off('selected');

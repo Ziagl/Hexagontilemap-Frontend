@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { GameMenu } from './GameMenu.ts';
 
 export class Game extends Scene
 {
@@ -8,6 +9,7 @@ export class Game extends Scene
     private map: Phaser.Tilemaps.Tilemap;
     private marker: Phaser.GameObjects.Graphics;
     private groundLayer: Phaser.Tilemaps.TilemapLayer;
+    private menu: GameMenu;
 
     constructor ()
     {
@@ -22,6 +24,7 @@ export class Game extends Scene
 
     preload ()
     {
+        // map
         this.load.image('tiles', 'assets/tileset.png');
         this.load.tilemapTiledJSON('map', 'assets/hexagonal.json');
     }
@@ -70,10 +73,20 @@ export class Game extends Scene
         {
             // mouse control
             this.input.on(Phaser.Input.Events.POINTER_UP, (pointer: Phaser.Input.Pointer) => {
+                const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+                
                 // get the tile under the curser (can be null if outside map)
-                const tile = this.groundLayer.getTileAtWorldXY(pointer.position.x, pointer.position.y);
+                const tile = this.groundLayer.getTileAtWorldXY(worldPoint.x, worldPoint.y);
                 if (tile){
-                    
+                    if(this.menu)
+                    {
+                        this.menu.setMenuVisible(true);
+                    }
+                } else {
+                    if(this.menu)
+                    {
+                        this.menu.setMenuVisible(false);
+                    }
                 }
             });
             this.input.on(Phaser.Input.Events.POINTER_WHEEL, (pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number, deltaZ: number) => {
@@ -89,10 +102,14 @@ export class Game extends Scene
             this.input.keyboard!.on('keyup', this.anyKey, this);
 
             // remember to clean up on Scene shutdown
-            this.events.on(Phaser.Scenes.Events.SHUTDOWN, () => {
+            this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
                 this.input.off(Phaser.Input.Events.POINTER_UP)
             });
         }
+
+        // load game menu scene
+        this.scene.launch('GameMenu');
+        this.menu = this.scene.get('GameMenu') as GameMenu;
     }
 
     update (time:number, delta:number)
