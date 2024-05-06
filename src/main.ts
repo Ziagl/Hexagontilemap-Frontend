@@ -1,6 +1,6 @@
-import { MainMenu as MainMenuScene } from './scenes/MainMenu';
-import { Game as GameScene } from './scenes/Game';
-import { GameMenu as GameMenuScene } from './scenes/GameMenu';
+import { Game as GameScene } from './scenes/game_';
+import { MainMenu as MainMenuScene } from './scenes/main_menu';
+import { GameMenu as GameMenuScene } from './scenes/game_menu';
 import { AUTO, Game, Scale,Types } from "phaser";
 
 //  Find out more information about the Game Config at:

@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
-import { GameMenu } from './GameMenu.ts';
+import { GameMenu } from './game_menu.ts';
+import { Generator } from '../map/generator.ts';
 
 export class Game extends Scene
 {
@@ -12,8 +13,6 @@ export class Game extends Scene
     private menu: GameMenu;
     private minimap: Phaser.Cameras.Scene2D.Camera;
 
-    
-
     constructor ()
     {
         super('Game');
@@ -21,6 +20,8 @@ export class Game extends Scene
 
     init()
     {
+        const generator = new Generator();
+        generator.generate();
         this.isDesktop = this.sys.game.device.os.desktop;
         this.isAndroid = this.sys.game.device.os.android;
     }
@@ -29,21 +30,21 @@ export class Game extends Scene
     {
         // map
         this.load.image('tiles', 'assets/tileset.png');
-        this.load.tilemapTiledJSON('map', 'assets/hexagonal.json');
+        this.load.tilemapTiledJSON('map', 'assets/example.json');
     }
 
     create ()
     {
-        //  add a minimap that shows the map from a different zoom level
-        this.minimap = this.cameras.add(0, this.scale.height - (this.scale.height / 4), this.scale.width / 4, this.scale.height / 4).setZoom(1).setName('mini');
-        this.minimap.setBackgroundColor(0x002244);
-        this.minimap.centerOn(220, 120);
-
         // create map
         this.map = this.add.tilemap('map');
 
         const tileset = this.map.addTilesetImage('tileset', 'tiles');
         this.groundLayer = this.map.createLayer('Calque 1', tileset!) as Phaser.Tilemaps.TilemapLayer;
+
+        //  add a minimap that shows the map from a different zoom level
+        this.minimap = this.cameras.add(0, this.scale.height - (this.scale.height / 4), this.scale.width / 4, this.scale.height / 4).setZoom(1).setName('mini');
+        this.minimap.setBackgroundColor(0x002244);
+        this.minimap.centerOn(this.map.widthInPixels / 2, this.map.heightInPixels / 2);
 
         const cursors = this.input.keyboard!.createCursorKeys();
 
