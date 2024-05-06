@@ -1,4 +1,4 @@
-import { Game as GameScene } from './scenes/game_';
+import { Game as GameScene } from './scenes/game';
 import { MainMenu as MainMenuScene } from './scenes/main_menu';
 import { GameMenu as GameMenuScene } from './scenes/game_menu';
 import { AUTO, Game, Scale,Types } from "phaser";
