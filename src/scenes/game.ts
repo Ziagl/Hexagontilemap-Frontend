@@ -148,7 +148,17 @@ export class Game extends Scene
         // if user clicks ESC
         if (code === Phaser.Input.Keyboard.KeyCodes.ESC)
         {
+            // back to main menu
             this.scene.start('MainMenu');
+        }
+        if (code === Phaser.Input.Keyboard.KeyCodes.M)
+        {
+            // toggle mini map
+            this.minimap.visible = !this.minimap.visible;
+        }
+        if (code === Phaser.Input.Keyboard.KeyCodes.SPACE)
+        {
+            // TODO
         }
     }
 }
