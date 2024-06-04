@@ -1,6 +1,7 @@
+import { MapSize, MapType } from '@ziagl/tiled-map-generator';
 import { Scene } from 'phaser';
 
-export class MainMenu extends Scene
+export class SettingsMenu extends Scene
 {
     private isDesktop = false;
     private isAndroid = false;
@@ -12,7 +13,10 @@ export class MainMenu extends Scene
 
     constructor ()
     {
-        super('MainMenu');
+        super('SettingsMenu');
+
+        //this.data.set('MapSize', MapSize.SMALL);
+        //this.data.set('MapType', MapType.CONTINENTS);
     }
 
     init()
@@ -40,18 +44,23 @@ export class MainMenu extends Scene
 
         // create menu buttons
         const playButton = this.add.image((this.scale.width * 0.5), (this.scale.height * 0.5) - ((buttonHeight * 3) / 2), this.buttonPanel)
-                                   .setDisplaySize(buttonWidth, buttonHeight);
-        this.add.text(playButton.x, playButton.y, 'Play')
-                .setOrigin(0.5);
+                                    .setDisplaySize(buttonWidth, buttonHeight);
+        for (let key of Object.keys(MapSize)) {
+            //const playButton = this.add.image((this.scale.width * 0.5), (this.scale.height * 0.5) - ((buttonHeight * 3) / 2), this.buttonPanel)
+            //                        .setDisplaySize(buttonWidth, buttonHeight);
+            this.add.text(playButton.x, playButton.y, key)
+                    .setOrigin(0.5);
+            break;
+        }
 
         const settingsButton = this.add.image(playButton.x, playButton.y + playButton.displayHeight + buttonOffset, this.buttonPanel)
                                        .setDisplaySize(buttonWidth, buttonHeight);
         this.add.text(settingsButton.x, settingsButton.y, 'Settings')
                 .setOrigin(0.5);
 
-        const creditsButton = this.add.image(settingsButton.x, settingsButton.y + settingsButton.displayHeight + buttonOffset, this.buttonPanel)
+        const mainMenuButton = this.add.image(settingsButton.x, settingsButton.y + settingsButton.displayHeight + buttonOffset, this.buttonPanel)
                                       .setDisplaySize(buttonWidth, buttonHeight);
-        this.add.text(creditsButton.x, creditsButton.y, 'Credits')
+        this.add.text(mainMenuButton.x, mainMenuButton.y, 'Main Menu')
                 .setOrigin(0.5);
 
         // click events for cursor or touch input
@@ -75,14 +84,14 @@ export class MainMenu extends Scene
                 .on('pointerdown', () => {
                     settingsButton.setTint(this.buttonColorClick);
                 });
-            creditsButton.setInteractive()
+            mainMenuButton.setInteractive()
                 .on('pointerup', () => {
-                    creditsButton.setTint(this.buttonColorHover);
+                    mainMenuButton.setTint(this.buttonColorHover);
                     const button = this.buttons[2];
                     button.emit('selected');
                 })
                 .on('pointerdown', () => {
-                    creditsButton.setTint(this.buttonColorClick);
+                    mainMenuButton.setTint(this.buttonColorClick);
                 });
         }
         // hover events only make sense with a cursor
@@ -102,19 +111,19 @@ export class MainMenu extends Scene
                 .on('pointerout', () => {
                     settingsButton.setTint(this.buttonColorDefault);
                 });
-            creditsButton.setInteractive()
+            mainMenuButton.setInteractive()
                 .on('pointerover', () => {
-                    creditsButton.setTint(this.buttonColorHover);
+                    mainMenuButton.setTint(this.buttonColorHover);
                 })
                 .on('pointerout', () => {
-                    creditsButton.setTint(this.buttonColorDefault);
+                    mainMenuButton.setTint(this.buttonColorDefault);
                 });
         }
 
         this.buttons = [];
         this.buttons.push(playButton);
         this.buttons.push(settingsButton);
-        this.buttons.push(creditsButton);
+        this.buttons.push(mainMenuButton);
 
         playButton.on('selected', () => {
             console.log('play');
@@ -122,17 +131,17 @@ export class MainMenu extends Scene
         });
         settingsButton.on('selected', () => {
             console.log('settings');
-            this.scene.start('SettingsMenu');
         });
-        creditsButton.on('selected', () => {
-            console.log('credits');
+        mainMenuButton.on('selected', () => {
+            console.log('mainMenu');
+            this.scene.start('MainMenu');
         });
 
         // remember to clean up on Scene shutdown
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             playButton.off('selected');
             settingsButton.off('selected');
-            creditsButton.off('selected');
+            mainMenuButton.off('selected');
         });
     }
 

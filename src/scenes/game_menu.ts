@@ -2,15 +2,16 @@ import { Scene } from 'phaser';
 
 enum Tilenames
 {
-    Grass = 'Grassland',
-    DeepWater = 'Deep water',
-    Mountain = 'Mountain',
-    Forest = 'Forest',
-    Sand = 'Sand',
-    Snow = 'Snow',
-    Lake = 'Lake',
-    ShallowWater = 'Shallow water',
-    Reef = 'Reef'
+    DEEP_WATER = 'Deep water',
+    SHALLOW_WATER = 'Shallow water',
+    SAND = 'Sand',
+    GRASS = 'Grassland',
+    FOREST = 'Forest',
+    SWAMP = 'Swamp',
+    JUNGLE = 'Jungle',
+    HILLS = 'Hills',
+    MOUNTAIN = 'Mountain',
+    SNOW = 'Snow',
 };
 
 export class GameMenu extends Scene

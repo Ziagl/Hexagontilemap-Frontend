@@ -30,7 +30,7 @@ export class Game extends Scene
     {
         // map
         this.load.image('tiles', 'assets/tileset.png');
-        this.load.tilemapTiledJSON('map', 'assets/example.json');
+        this.load.tilemapTiledJSON('map', 'assets/highland.json');
     }
 
     create ()
