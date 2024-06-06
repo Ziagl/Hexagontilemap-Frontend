@@ -14,9 +14,6 @@ export class SettingsMenu extends Scene
     constructor ()
     {
         super('SettingsMenu');
-
-        //this.data.set('MapSize', MapSize.SMALL);
-        //this.data.set('MapType', MapType.CONTINENTS);
     }
 
     init()
@@ -38,6 +35,11 @@ export class SettingsMenu extends Scene
 
     create()
     {
+        // @ts-ignore
+        this.gameData.mapSize = MapSize.SMALL;
+        // @ts-ignore
+        this.gameData.mapType = MapType.CONTINENTS;
+
         const buttonWidth = this.scale.width / 7;
         const buttonHeight = buttonWidth / 3;
         const buttonOffset = buttonHeight / 2;

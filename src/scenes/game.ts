@@ -35,6 +35,11 @@ export class Game extends Scene
 
     create ()
     {
+        // @ts-ignore
+        console.log(this.gameData.mapSize);
+        // @ts-ignore
+        console.log(this.gameData.mapType);
+
         // create map
         this.map = this.add.tilemap('map');
 
