@@ -3,16 +3,7 @@ import { MainMenu as MainMenuScene } from './scenes/main_menu';
 import { GameMenu as GameMenuScene } from './scenes/game_menu';
 import { SettingsMenu as SettingsMenuScene } from './scenes/settings_menu';
 import { AUTO, Game, Scale,Types } from "phaser";
-import { MapSize, MapType } from '@ziagl/tiled-map-generator';
-
-class GameData extends Phaser.Plugins.BasePlugin {
-    constructor(pluginManager: any) {
-        super(pluginManager); 
-    }
-    
-    public mapSize:MapSize;
-    public mapType:MapType;
-}
+import { GameData } from './models/game_data';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
