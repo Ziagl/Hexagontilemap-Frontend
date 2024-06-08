@@ -35,32 +35,41 @@ export class SettingsMenu extends Scene
 
     create()
     {
-        // @ts-ignore
-        this.gameData.mapSize = MapSize.SMALL;
-        // @ts-ignore
-        this.gameData.mapType = MapType.CONTINENTS;
-
         const buttonWidth = this.scale.width / 7;
         const buttonHeight = buttonWidth / 3;
-        const buttonOffset = buttonHeight / 2;
 
         // create menu buttons
-        const playButton = this.add.image((this.scale.width * 0.5), (this.scale.height * 0.5) - ((buttonHeight * 3) / 2), this.buttonPanel)
-                                    .setDisplaySize(buttonWidth, buttonHeight);
+        let sizeButtons:Phaser.GameObjects.Image[] = [];
+        let lastHeight = 100;
+        let index = 0;
         for (let key of Object.keys(MapSize)) {
-            //const playButton = this.add.image((this.scale.width * 0.5), (this.scale.height * 0.5) - ((buttonHeight * 3) / 2), this.buttonPanel)
-            //                        .setDisplaySize(buttonWidth, buttonHeight);
-            this.add.text(playButton.x, playButton.y, key)
-                    .setOrigin(0.5);
-            break;
+            if (key.length > 1) {
+                lastHeight = lastHeight + buttonHeight;
+                const sizeButton = this.add.image((this.scale.width * 0.5) - buttonWidth, lastHeight, this.buttonPanel)
+                                        .setDisplaySize(buttonWidth, buttonHeight);
+                this.add.text(sizeButton.x, sizeButton.y, key)
+                        .setOrigin(0.5);
+                sizeButtons.push(sizeButton);
+                ++index;
+            }
         }
 
-        const settingsButton = this.add.image(playButton.x, playButton.y + playButton.displayHeight + buttonOffset, this.buttonPanel)
-                                       .setDisplaySize(buttonWidth, buttonHeight);
-        this.add.text(settingsButton.x, settingsButton.y, 'Settings')
-                .setOrigin(0.5);
+        let typeButtons:Phaser.GameObjects.Image[] = [];
+        lastHeight = 100;
+        index = 0;
+        for (let key of Object.keys(MapType)) {
+            if (key.length > 1) {
+                lastHeight = lastHeight + buttonHeight;
+                const typeButton = this.add.image((this.scale.width * 0.5) + buttonWidth, lastHeight, this.buttonPanel)
+                                        .setDisplaySize(buttonWidth, buttonHeight);
+                this.add.text(typeButton.x, typeButton.y, key)
+                        .setOrigin(0.5);
+                typeButtons.push(typeButton);
+                --index;
+            }
+        }
 
-        const mainMenuButton = this.add.image(settingsButton.x, settingsButton.y + settingsButton.displayHeight + buttonOffset, this.buttonPanel)
+        const mainMenuButton = this.add.image((this.scale.width * 0.5) - buttonWidth, lastHeight, this.buttonPanel)
                                       .setDisplaySize(buttonWidth, buttonHeight);
         this.add.text(mainMenuButton.x, mainMenuButton.y, 'Main Menu')
                 .setOrigin(0.5);
@@ -68,28 +77,32 @@ export class SettingsMenu extends Scene
         // click events for cursor or touch input
         if(this.isDesktop || this.isAndroid)
         {
-            playButton.setInteractive()
+            sizeButtons.forEach((button, index) => {
+                button.setInteractive()
                 .on('pointerup', () => {
-                    playButton.setTint(this.buttonColorHover);
-                    const button = this.buttons[0];
-                    button.emit('selected');
+                    button.setTint(this.buttonColorHover);
+                    const tempButton = this.buttons[index];
+                    tempButton.emit('selected');
                 })
                 .on('pointerdown', () => {
-                    playButton.setTint(this.buttonColorClick);
+                    button.setTint(this.buttonColorClick);
                 });
-            settingsButton.setInteractive()
+            });
+            typeButtons.forEach((button, index) => {
+                button.setInteractive()
                 .on('pointerup', () => {
-                    settingsButton.setTint(this.buttonColorHover);
-                    const button = this.buttons[1];
-                    button.emit('selected');
+                    button.setTint(this.buttonColorHover);
+                    const tempButton = this.buttons[sizeButtons.length + index];
+                    tempButton.emit('selected');
                 })
                 .on('pointerdown', () => {
-                    settingsButton.setTint(this.buttonColorClick);
+                    button.setTint(this.buttonColorClick);
                 });
+            });
             mainMenuButton.setInteractive()
                 .on('pointerup', () => {
                     mainMenuButton.setTint(this.buttonColorHover);
-                    const button = this.buttons[2];
+                    const button = this.buttons[sizeButtons.length + typeButtons.length];
                     button.emit('selected');
                 })
                 .on('pointerdown', () => {
@@ -99,20 +112,24 @@ export class SettingsMenu extends Scene
         // hover events only make sense with a cursor
         if(this.isDesktop)
         {
-            playButton.setInteractive()
+            sizeButtons.forEach(button => {
+                button.setInteractive()
                 .on('pointerover', () => {
-                    playButton.setTint(this.buttonColorHover);
+                    button.setTint(this.buttonColorHover);
                 })
                 .on('pointerout', () => {
-                    playButton.setTint(this.buttonColorDefault);
-                });
-            settingsButton.setInteractive()
+                    button.setTint(this.buttonColorDefault);
+                }); 
+            });
+            typeButtons.forEach(button => {
+                button.setInteractive()
                 .on('pointerover', () => {
-                    settingsButton.setTint(this.buttonColorHover);
+                    button.setTint(this.buttonColorHover);
                 })
                 .on('pointerout', () => {
-                    settingsButton.setTint(this.buttonColorDefault);
-                });
+                    button.setTint(this.buttonColorDefault);
+                }); 
+            });
             mainMenuButton.setInteractive()
                 .on('pointerover', () => {
                     mainMenuButton.setTint(this.buttonColorHover);
@@ -123,16 +140,29 @@ export class SettingsMenu extends Scene
         }
 
         this.buttons = [];
-        this.buttons.push(playButton);
-        this.buttons.push(settingsButton);
+        sizeButtons.forEach(button => {
+            this.buttons.push(button);
+        });
+        typeButtons.forEach(button => {
+            this.buttons.push(button);
+        });
         this.buttons.push(mainMenuButton);
 
-        playButton.on('selected', () => {
-            console.log('play');
-            this.scene.start('Game');
+        sizeButtons.forEach((button, index) => {
+            button.on('selected', () => {
+                // @ts-ignore
+                this.gameData.mapSize = index + 1;
+                // @ts-ignore
+                console.log('set MapSize to ', MapSize[(index + 1) as keyof typeof MapSize].toString());
+            });
         });
-        settingsButton.on('selected', () => {
-            console.log('settings');
+        typeButtons.forEach((button, index) => {
+            button.on('selected', () => {
+                // @ts-ignore
+                this.gameData.mapType = index + 1;
+                // @ts-ignore
+                console.log('set MapType to ', MapType[(index + 1) as keyof typeof MapType].toString());
+            });
         });
         mainMenuButton.on('selected', () => {
             console.log('mainMenu');
@@ -141,8 +171,12 @@ export class SettingsMenu extends Scene
 
         // remember to clean up on Scene shutdown
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-            playButton.off('selected');
-            settingsButton.off('selected');
+            sizeButtons.forEach(button => {
+                button.off('selected');
+            });
+            typeButtons.forEach(button => {
+                button.off('selected');
+            });
             mainMenuButton.off('selected');
         });
     }

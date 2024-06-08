@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
 import { GameMenu } from './game_menu.ts';
 import { Generator } from '../map/generator.ts';
+import { MapSize, MapType } from '@ziagl/tiled-map-generator';
 
 export class Game extends Scene
 {
@@ -36,9 +37,9 @@ export class Game extends Scene
     create ()
     {
         // @ts-ignore
-        console.log(this.gameData.mapSize);
+        console.log("MapSize: " + MapSize[this.gameData.mapSize as keyof typeof MapSize].toString());
         // @ts-ignore
-        console.log(this.gameData.mapType);
+        console.log("MapType: " + MapType[this.gameData.mapType as keyof typeof MapType].toString());
 
         // create map
         this.map = this.add.tilemap('map');
