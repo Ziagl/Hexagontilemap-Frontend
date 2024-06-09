@@ -139,6 +139,80 @@ export class SettingsMenu extends Scene
                 });
         }
 
+        
+
+
+
+
+        const COLOR_PRIMARY = 0x4e342e;
+        const COLOR_LIGHT = 0x7b5e57;
+        const COLOR_DARK = 0x260e04;
+        const options:string[] = [];
+        for (let key of Object.keys(MapSize)) {
+            if (key.length > 1) {
+                options.push(key);
+            }
+        }
+
+        // @ts-ignore
+        const dropDownList = this.rexUI.add.dropDownList({
+            x: 400, y: 300,
+            // @ts-ignore
+            background: this.rexUI.add.roundRectangle(0, 0, 2, 2, 0, COLOR_PRIMARY),
+            // @ts-ignore
+            icon: this.rexUI.add.roundRectangle(0, 0, 20, 20, 10, COLOR_LIGHT),
+            text: this.add.text(0, 0, '-- Select --', { fontSize: 20 }).setFixedSize(150, 0),
+            space: { left: 10, right: 10, top: 10, bottom: 10, icon: 10 },
+            options: options,
+            list: {
+                createBackgroundCallback: (scene: any) => {
+                    return scene.rexUI.add.roundRectangle(0, 0, 2, 2, 0, COLOR_DARK);
+                },
+                // @ts-ignore
+                createButtonCallback: (scene: any, option: any, index: number, options: any[]): any => {
+                    let stringOption = typeof option === 'string';
+                    let text = stringOption ? option : option.text;
+                    let button = scene.rexUI.add.label({
+                        background: scene.rexUI.add.roundRectangle(0, 0, 2, 2, 0),
+                        text: scene.add.text(0, 0, text, { fontSize: 20 }),
+                        space: { left: 10, right: 10, top: 10, bottom: 10, icon: 10 }
+                    });
+                    button.value = stringOption ? undefined : option.value;
+                
+                    return button;
+                },
+                
+                // @ts-ignore
+                onButtonClick: function (this: any, button: any, index: number, pointer: any, event: any) {
+                    this.setValue(index);
+                    this.text = button.text;
+                    this.value = index;
+                },
+                
+                // @ts-ignore
+                onButtonOver: function (this: any, button: any, index: number, pointer: any, event: any) {
+                    button.getElement('background').setStrokeStyle(1, 0xffffff);
+                },
+                
+                // @ts-ignore
+                onButtonOut: function (this: any, button: any, index: number, pointer: any, event: any) {
+                    button.getElement('background').setStrokeStyle();
+                },
+              
+                // expandDirection: 'up',
+            },
+
+            // @ts-ignore
+            setValueCallback: function (dropDownList:any, value:any, previousValue:any) {
+                console.log("setValueCallback  " + value);
+                dropDownList.text = options[value];
+            },
+
+            // @ts-ignore
+            value: this.gameData.mapSize,
+        })
+        .layout();
+
         this.buttons = [];
         sizeButtons.forEach(button => {
             this.buttons.push(button);
@@ -166,7 +240,13 @@ export class SettingsMenu extends Scene
         });
         mainMenuButton.on('selected', () => {
             console.log('mainMenu');
+            // save settings!
+            console.log("set map size to " + dropDownList.value);
+            // @ts-ignore
+            this.gameData.mapSize = dropDownList.value;
+
             this.scene.start('MainMenu');
+            
         });
 
         // remember to clean up on Scene shutdown

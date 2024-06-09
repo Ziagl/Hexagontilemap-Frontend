@@ -25,6 +25,7 @@
     "dependencies": {
         "@kayahr/tiled": "^0.0.1",
         "@ziagl/tiled-map-generator": "^0.1.0",
-        "phaser": "^3.80.1"
+        "phaser": "^3.80.1",
+        "phaser3-rex-plugins": "^1.80.4"
     }
 }
