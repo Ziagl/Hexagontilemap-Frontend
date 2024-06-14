@@ -7,6 +7,7 @@ export class GameData extends Phaser.Plugins.BasePlugin {
     constructor(pluginManager: any) {
         super(pluginManager);
 
+        // default settings for map
         this.mapSize = MapSize.SMALL;
         this.mapType = MapType.CONTINENTS;
     }

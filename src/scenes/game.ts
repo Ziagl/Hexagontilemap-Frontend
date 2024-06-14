@@ -1,7 +1,6 @@
 import { Scene } from 'phaser';
 import { GameMenu } from './game_menu.ts';
-import { Generator } from '../map/generator.ts';
-import { MapSize, MapType } from '@ziagl/tiled-map-generator';
+import { Generator, MapSize, MapType } from '@ziagl/tiled-map-generator';
 
 export class Game extends Scene
 {
@@ -21,31 +20,63 @@ export class Game extends Scene
 
     init()
     {
-        const generator = new Generator();
-        generator.generate();
         this.isDesktop = this.sys.game.device.os.desktop;
         this.isAndroid = this.sys.game.device.os.android;
     }
 
     preload ()
     {
-        // map
-        this.load.image('tiles', 'assets/tileset.png');
-        this.load.tilemapTiledJSON('map', 'assets/highland.json');
-    }
-
-    create ()
-    {
         // @ts-ignore
         console.log("MapSize: " + MapSize[this.gameData.mapSize as keyof typeof MapSize].toString());
         // @ts-ignore
         console.log("MapType: " + MapType[this.gameData.mapType as keyof typeof MapType].toString());
 
-        // create map
-        this.map = this.add.tilemap('map');
+        // map
+        this.load.image('tiles', 'assets/tileset.png');
+        //this.load.tilemapTiledJSON('map', 'assets/highland.json');
+    }
 
+    create ()
+    {
+        // create map
+        // static
+        //this.map = this.add.tilemap('map');
+        //const tileset = this.map.addTilesetImage('tileset', 'tiles');
+        //this.groundLayer = this.map.createLayer(0, tileset!) as Phaser.Tilemaps.TilemapLayer;
+
+        //dynamic
+        const generator = new Generator();
+        // @ts-ignore
+        generator.generateMap(this.gameData.mapType, this.gameData.mapSize);
+        const [map, rows, columns] = generator.exportMap();
+        
+        // initialize empty hexagon map
+        const mapData = new Phaser.Tilemaps.MapData({
+            width: columns,
+            height: rows,
+            tileWidth: 32,
+            tileHeight: 34,
+            widthInPixels: columns * 32,
+            heightInPixels: rows * 34,
+            orientation: Phaser.Tilemaps.Orientation.HEXAGONAL,
+            format: Phaser.Tilemaps.Formats.ARRAY_2D,
+            renderOrder: 'right-down',
+        });
+        mapData.hexSideLength = 32 / 2;
+
+        this.map = new Phaser.Tilemaps.Tilemap(this, mapData);
+        this.map.hexSideLength = mapData.hexSideLength;
         const tileset = this.map.addTilesetImage('tileset', 'tiles');
-        this.groundLayer = this.map.createLayer('Calque 1', tileset!) as Phaser.Tilemaps.TilemapLayer;
+        this.groundLayer = this.map.createBlankLayer('groundLayer', tileset!, 0, 0, columns, rows, 32, 34)!;
+        this.groundLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
+
+        // convert 1D -> 2D
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < columns; j++) {
+                let tile = this.groundLayer.putTileAt(map[j + columns * i] - 1, j, i, false);
+                tile.updatePixelXY(); // update pixel that vertical alignment is correct (hexSideLength needs to be set)
+            }
+        }
 
         //  add a minimap that shows the map from a different zoom level
         this.minimap = this.cameras.add(0, this.scale.height - (this.scale.height / 4), this.scale.width / 4, this.scale.height / 4).setZoom(1).setName('mini');
@@ -93,14 +124,12 @@ export class Game extends Scene
                 // get the tile under the curser (can be null if outside map)
                 const tile = this.groundLayer.getTileAtWorldXY(worldPoint.x, worldPoint.y);
                 if (tile){
-                    if(this.menu)
-                    {
+                    if(this.menu) {
                         this.menu.setMenuVisible(true);
-                        this.menu.setTileImage(tile.index);
+                        this.menu.setTileImage(tile.index + 1);
                     }
                 } else {
-                    if(this.menu)
-                    {
+                    if(this.menu) {
                         this.menu.setMenuVisible(false);
                     }
                 }

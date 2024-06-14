@@ -4,14 +4,17 @@ enum Tilenames
 {
     DEEP_WATER = 'Deep water',
     SHALLOW_WATER = 'Shallow water',
-    SAND = 'Sand',
-    GRASS = 'Grassland',
+    DESERT = 'Desert',
+    PLAIN = 'Plain',
     FOREST = 'Forest',
     SWAMP = 'Swamp',
     JUNGLE = 'Jungle',
     HILLS = 'Hills',
     MOUNTAIN = 'Mountain',
-    SNOW = 'Snow',
+    SNOW_PLAIN = 'Snowy Plain',
+    SNOW_HILLS = 'Snowy Hills',
+    SNOW_MOUNTAIN = 'Snowy Mountain',
+    SNOW_WATER = 'Ice water',
 };
 
 export class GameMenu extends Scene
@@ -44,7 +47,7 @@ export class GameMenu extends Scene
         // menu
         this.load.image(this.background, 'assets/ui/panel_brown.png');
         // tile array
-        for(let i = 1; i < 10; ++i)
+        for(let i = 1; i < 14; ++i)
         {
             this.load.image('tile_' + i, 'assets/tile_' + i + '.png');
         }
