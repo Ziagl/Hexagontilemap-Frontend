@@ -26,11 +26,6 @@ export class Game extends Scene
 
     preload ()
     {
-        // @ts-ignore
-        console.log("MapSize: " + MapSize[this.gameData.mapSize as keyof typeof MapSize].toString());
-        // @ts-ignore
-        console.log("MapType: " + MapType[this.gameData.mapType as keyof typeof MapType].toString());
-
         // map
         this.load.image('tiles', 'assets/tileset.png');
         //this.load.tilemapTiledJSON('map', 'assets/highland.json');
@@ -46,6 +41,8 @@ export class Game extends Scene
 
         //dynamic
         const generator = new Generator();
+        // @ts-ignore
+        console.log("Create new random map with type " + MapType[this.gameData.mapType as keyof typeof MapType].toString() + " and size " + MapSize[this.gameData.mapSize as keyof typeof MapSize].toString());
         // @ts-ignore
         generator.generateMap(this.gameData.mapType, this.gameData.mapSize);
         const [map, rows, columns] = generator.exportMap();
