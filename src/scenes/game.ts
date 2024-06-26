@@ -1,6 +1,10 @@
 import { Scene } from 'phaser';
 import { GameMenu } from './game_menu.ts';
 import { Generator, MapSize, MapType } from '@ziagl/tiled-map-generator';
+import { PathFinder } from '@ziagl/tiled-map-path-finder';
+import { HexOffset, Orientation, offsetToCube } from 'honeycomb-grid';
+import { MovementCosts, MovementType } from '../map/MovementCosts.ts';
+import { Dictionary } from '../interfaces/IDictionary.ts';
 
 export class Game extends Scene
 {
@@ -8,14 +12,24 @@ export class Game extends Scene
     private isAndroid = false;
     private controls:Phaser.Cameras.Controls.SmoothedKeyControl;
     private map: Phaser.Tilemaps.Tilemap;
+    private tileDictionary: Dictionary<Phaser.Tilemaps.Tile> = {};
     private marker: Phaser.GameObjects.Graphics;
+    private movementMarkers: Phaser.GameObjects.Graphics[] = [];
     private groundLayer: Phaser.Tilemaps.TilemapLayer;
     private menu: GameMenu;
     private minimap: Phaser.Cameras.Scene2D.Camera;
+    private pathFinder: PathFinder;
+
+    private _hexSetting;
+    //private _hexDefinition;
 
     constructor ()
     {
         super('Game');
+
+        // is needed for cube to offset conversion
+        this._hexSetting = {offset: -1 as HexOffset, orientation: Orientation.POINTY};
+        //this._hexDefinition = defineHex(this._hexSetting);
     }
 
     init()
@@ -46,7 +60,12 @@ export class Game extends Scene
         // @ts-ignore
         generator.generateMap(this.gameData.mapType, this.gameData.mapSize);
         const [map, rows, columns] = generator.exportMap();
-        
+        console.log("map rows "+rows+" columns "+columns);
+        generator.print();
+
+        // initialize path finder
+        this.pathFinder = new PathFinder(MovementCosts.generateMap(map, MovementType.LAND), rows, columns);
+
         // initialize empty hexagon map
         const mapData = new Phaser.Tilemaps.MapData({
             width: columns,
@@ -72,6 +91,10 @@ export class Game extends Scene
             for (let j = 0; j < columns; j++) {
                 let tile = this.groundLayer.putTileAt(map[j + columns * i] - 1, j, i, false);
                 tile.updatePixelXY(); // update pixel that vertical alignment is correct (hexSideLength needs to be set)
+                // add tile to dictionary for later use
+                const tileCoords = offsetToCube(this._hexSetting, {col: j, row: i});
+                const key:string = `q:${tileCoords.q}r:${tileCoords.r}s:${tileCoords.s}`;
+                this.tileDictionary[key] = tile;
             }
         }
 
@@ -124,11 +147,57 @@ export class Game extends Scene
                     if(this.menu) {
                         this.menu.setMenuVisible(true);
                         this.menu.setTileImage(tile.index + 1);
+                        const cubeCoords = offsetToCube({offset: -1, orientation: Orientation.POINTY}, {col: tile.x, row: tile.y});
+                        this.menu.setTileInformation("OffsetCoords: " + tile.x + "," + tile.y + " , CubeCoords: " + cubeCoords.q + "," + cubeCoords.r + "," + cubeCoords.s + " , Index: " + tile.index);
                     }
                 } else {
                     if(this.menu) {
                         this.menu.setMenuVisible(false);
                     }
+                }
+
+                // generate markers for moveable tiles
+                if(this.movementMarkers.length == 0) {
+                    const cubeCoords = offsetToCube(this._hexSetting, {col: tile.x, row: tile.y});
+
+                    // compute reachable tiles
+                    const reachableTiles = this.pathFinder.reachableTiles(cubeCoords, 1);
+                    console.log("reachable tiles: "+reachableTiles.length);
+
+                    console.log("new request for q:"+cubeCoords.q+"r:"+cubeCoords.r+"s:"+cubeCoords.s);
+                    // creates a hexagonal movement marker based on tile size
+                    reachableTiles.forEach(coordinates => {
+                        // find tile by cube coordinates
+                        const key:string = 'q:'+coordinates.q+'r:'+coordinates.r+'s:'+coordinates.s;
+                        if(Object.keys(this.tileDictionary).includes(key)) {
+                            console.log("found tile at "+key);
+                            const tile = this.tileDictionary[key];
+
+                            let movementMarker = this.add.graphics();
+                            movementMarker.lineStyle(3, 0x100089, 1);
+                            movementMarker.beginPath();
+                            movementMarker.moveTo(0, this.map.tileHeight / 4);
+                            movementMarker.lineTo(0, (this.map.tileHeight / 4) * 3);
+                            movementMarker.lineTo(this.map.tileWidth / 2, this.map.tileHeight);
+                            movementMarker.lineTo(this.map.tileWidth, (this.map.tileHeight / 4) * 3);
+                            movementMarker.lineTo(this.map.tileWidth, this.map.tileHeight / 4);
+                            movementMarker.lineTo(this.map.tileWidth / 2, 0);
+                            movementMarker.lineTo(0, this.map.tileHeight / 4);
+                            movementMarker.closePath();
+                            movementMarker.strokePath();
+
+                            movementMarker.x = tile.pixelX;
+                            movementMarker.y = tile.pixelY;
+                            movementMarker.alpha = 1;
+
+                            this.movementMarkers.push(movementMarker);
+                        } else {
+                            console.log(`Key ${key} not found.`);
+                        }
+                    });
+                } else {
+                    this.movementMarkers.forEach(marker => marker.destroy());
+                    this.movementMarkers = [];
                 }
             });
             this.input.on(Phaser.Input.Events.POINTER_WHEEL, (pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number, deltaZ: number) => {

@@ -23,6 +23,7 @@ export class GameMenu extends Scene
     private background = 'background';
     private tileImage: Phaser.GameObjects.Image;
     private tileName: Phaser.GameObjects.DOMElement;
+    private tileInformation: Phaser.GameObjects.DOMElement;
     private style: any;
 
     constructor ()
@@ -62,12 +63,15 @@ export class GameMenu extends Scene
                                         .setDisplaySize(400, this.scale.height);
         this.tileMenu.add(backgroundImage);
         this.tileName = this.add.dom(this.scale.width - 20, 50, 'div', this.style, 'Test das it ein ganz langer text')
-                                 .setOrigin(1, 0);
+                                .setOrigin(1, 0);
         this.tileMenu.add(this.tileName);
         this.tileImage = this.add.image(this.scale.width - 20, 170, 'none')
                                   .setOrigin(1, 0)
                                   .setDisplaySize(360, 360);
         this.tileMenu.add(this.tileImage);
+        this.tileInformation = this.add.dom(this.scale.width - 20, 600, 'div', this.style, 'Test das it ein ganz langer text')
+                                       .setOrigin(1, 0);
+        this.tileMenu.add(this.tileInformation);
         this.tileMenu.visible = false;
     }
 
@@ -93,5 +97,10 @@ export class GameMenu extends Scene
                             .setOrigin(1, 0);
         this.tileMenu.replace(this.tileName, tileName, true);
         this.tileName = tileName;
+    }
+
+    public setTileInformation(value: string)
+    {
+        this.tileInformation.setText(value);
     }
 }

@@ -241,9 +241,9 @@ export class SettingsMenu extends Scene
         mainMenuButton.on('selected', () => {
             console.log('mainMenu');
             // save settings!
-            console.log("set map size to " + dropDownList.value);
+            console.log("set map size to " + dropDownList.value + 1);
             // @ts-ignore
-            this.gameData.mapSize = dropDownList.value;
+            this.gameData.mapSize = dropDownList.value + 1;
 
             this.scene.start('MainMenu');
             
