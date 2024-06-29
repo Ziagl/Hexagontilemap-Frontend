@@ -9,7 +9,6 @@ export enum MovementType {
 };
 
 export class MovementCosts{
-
     // land movement
     // generates a movement cost map based on a given map with tiles
     public static generateMap(map: number[], type:MovementType): number[] {

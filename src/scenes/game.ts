@@ -2,9 +2,10 @@ import { Scene } from 'phaser';
 import { GameMenu } from './game_menu.ts';
 import { Generator, MapSize, MapType } from '@ziagl/tiled-map-generator';
 import { PathFinder } from '@ziagl/tiled-map-path-finder';
-import { HexOffset, Orientation, offsetToCube } from 'honeycomb-grid';
+import { CubeCoordinates, HexOffset, Orientation, offsetToCube } from 'honeycomb-grid';
 import { MovementCosts, MovementType } from '../map/MovementCosts.ts';
 import { Dictionary } from '../interfaces/IDictionary.ts';
+import { MovementRenderer } from '../map/MovementRenderer.ts';
 
 export class Game extends Scene
 {
@@ -14,11 +15,15 @@ export class Game extends Scene
     private map: Phaser.Tilemaps.Tilemap;
     private tileDictionary: Dictionary<Phaser.Tilemaps.Tile> = {};
     private marker: Phaser.GameObjects.Graphics;
-    private movementMarkers: Phaser.GameObjects.Graphics[] = [];
     private groundLayer: Phaser.Tilemaps.TilemapLayer;
     private menu: GameMenu;
     private minimap: Phaser.Cameras.Scene2D.Camera;
+    
+    // path finding
     private pathFinder: PathFinder;
+    private movementRenderer: MovementRenderer;
+    private reachableTiles: CubeCoordinates[] = [];
+    private pathTiles: CubeCoordinates[] = [];
 
     private _hexSetting;
     //private _hexDefinition;
@@ -98,6 +103,9 @@ export class Game extends Scene
             }
         }
 
+        // create movement renderer
+        this.movementRenderer = new MovementRenderer(this, this.tileDictionary, this.map);
+
         //  add a minimap that shows the map from a different zoom level
         this.minimap = this.cameras.add(0, this.scale.height - (this.scale.height / 4), this.scale.width / 4, this.scale.height / 4).setZoom(1).setName('mini');
         this.minimap.setBackgroundColor(0x002244);
@@ -156,48 +164,63 @@ export class Game extends Scene
                     }
                 }
 
+                const cubeCoords = offsetToCube(this._hexSetting, {col: tile.x, row: tile.y});
+
                 // generate markers for moveable tiles
-                if(this.movementMarkers.length == 0) {
-                    const cubeCoords = offsetToCube(this._hexSetting, {col: tile.x, row: tile.y});
+                if(this.movementRenderer.isVisible()) {
+                    // if markers already exists and now clicked one of them -> compute path
+                    if(this.reachableTiles.length > 0) {
+                        const startCoords = this.reachableTiles[0];
+                        const endCoords = cubeCoords;
+                        let computePath = false;
 
-                    // compute reachable tiles
-                    const reachableTiles = this.pathFinder.reachableTiles(cubeCoords, 1);
-                    console.log("reachable tiles: "+reachableTiles.length);
+                        console.log("startCoords: q:"+startCoords.q+"r:"+startCoords.r+"s:"+startCoords.s);
+                        console.log("endCoords: q:"+endCoords.q+"r:"+endCoords.r+"s:"+endCoords.s);
 
-                    console.log("new request for q:"+cubeCoords.q+"r:"+cubeCoords.r+"s:"+cubeCoords.s);
-                    // creates a hexagonal movement marker based on tile size
-                    reachableTiles.forEach(coordinates => {
-                        // find tile by cube coordinates
-                        const key:string = 'q:'+coordinates.q+'r:'+coordinates.r+'s:'+coordinates.s;
-                        if(Object.keys(this.tileDictionary).includes(key)) {
-                            console.log("found tile at "+key);
-                            const tile = this.tileDictionary[key];
-
-                            let movementMarker = this.add.graphics();
-                            movementMarker.lineStyle(3, 0x100089, 1);
-                            movementMarker.beginPath();
-                            movementMarker.moveTo(0, this.map.tileHeight / 4);
-                            movementMarker.lineTo(0, (this.map.tileHeight / 4) * 3);
-                            movementMarker.lineTo(this.map.tileWidth / 2, this.map.tileHeight);
-                            movementMarker.lineTo(this.map.tileWidth, (this.map.tileHeight / 4) * 3);
-                            movementMarker.lineTo(this.map.tileWidth, this.map.tileHeight / 4);
-                            movementMarker.lineTo(this.map.tileWidth / 2, 0);
-                            movementMarker.lineTo(0, this.map.tileHeight / 4);
-                            movementMarker.closePath();
-                            movementMarker.strokePath();
-
-                            movementMarker.x = tile.pixelX;
-                            movementMarker.y = tile.pixelY;
-                            movementMarker.alpha = 1;
-
-                            this.movementMarkers.push(movementMarker);
+                        // check if compute path is possible
+                        if(startCoords.q != endCoords.q ||
+                           startCoords.r != endCoords.r ||
+                           startCoords.s != endCoords.s
+                        ) {
+                            this.reachableTiles.forEach(coordinates => {
+                                if(coordinates.q == cubeCoords.q && 
+                                   coordinates.r == cubeCoords.r && 
+                                   coordinates.s == cubeCoords.s) {
+                                    computePath = true;
+                                    return;
+                                }
+                            });
+                            if(computePath == false) {
+                                // if clicked outside of marked tiles -> remove path
+                                this.pathTiles = [];
+                            }
                         } else {
-                            console.log(`Key ${key} not found.`);
+                            // if clicked on start tile -> remove path
+                            this.pathTiles = [];
                         }
-                    });
-                } else {
-                    this.movementMarkers.forEach(marker => marker.destroy());
-                    this.movementMarkers = [];
+                        
+                        // compute path
+                        if(computePath) {
+                            console.log("compute path now!");
+                            this.pathTiles = this.pathFinder.computePath(startCoords, endCoords);
+                            console.log("found path! " + this.pathTiles.length);
+                            
+                            this.movementRenderer.create(this.pathTiles);
+                        }
+                    }
+
+                    if(this.pathTiles.length == 0) {
+                        this.movementRenderer.reset();
+                    } else {
+                        
+                    }
+                }
+
+                if(this.pathTiles.length == 0) {
+                    // compute reachable tiles
+                    this.reachableTiles = this.pathFinder.reachableTiles(cubeCoords, 6);
+
+                    this.movementRenderer.create(this.reachableTiles);
                 }
             });
             this.input.on(Phaser.Input.Events.POINTER_WHEEL, (pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number, deltaZ: number) => {
