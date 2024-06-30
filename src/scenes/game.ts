@@ -28,9 +28,6 @@ export class Game extends Scene
     private _hexSetting;
     //private _hexDefinition;
 
-    // debugging
-    private g1: Phaser.GameObjects.Graphics;
-
     constructor ()
     {
         super('Game');
@@ -86,7 +83,7 @@ export class Game extends Scene
             format: Phaser.Tilemaps.Formats.ARRAY_2D,
             renderOrder: 'right-down',
         });
-        mapData.hexSideLength = 32 / 2;
+        mapData.hexSideLength = 34 / 2; // this needs to be height for pointy hexagon map
 
         this.map = new Phaser.Tilemaps.Tilemap(this, mapData);
         this.map.hexSideLength = mapData.hexSideLength;
@@ -247,11 +244,6 @@ export class Game extends Scene
         // load game menu scene
         this.scene.launch('GameMenu');
         this.menu = this.scene.get('GameMenu') as GameMenu;
-
-        this.g1 = this.add.graphics({
-            fillStyle: { color: 0xff0000, alpha: 0.5 },
-            lineStyle: { color: 0xff0000, alpha: 0.5, width: 1 }
-        });
     }
 
     update (time:number, delta:number)
@@ -261,9 +253,6 @@ export class Game extends Scene
         // get the world point of pointer
         const worldPoint = this.input.activePointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
 
-        this.g1.clear();
-        this.g1.fillPoint(worldPoint.x, worldPoint.y, 4);
-
         // get the tile under the curser (can be null if outside map)
         const tile = this.groundLayer.getTileAtWorldXY(worldPoint.x, worldPoint.y);
         // update marker position and visibility
@@ -271,20 +260,9 @@ export class Game extends Scene
             this.marker.x = tile.pixelX;
             this.marker.y = tile.pixelY;
             this.marker.alpha = 1; // sets marker visible
-
-            this.drawTile(tile, this.g1);
         } else {
             this.marker.alpha = 0; // sets marker invisible
         }
-    }
-
-    drawTile(tile:Phaser.Tilemaps.Tile, graphics:Phaser.GameObjects.Graphics) {
-        const { pixelX, pixelY, width, height, baseWidth, baseHeight } = tile;
-      
-        graphics
-          .fillPoint(pixelX, pixelY, 4)
-          .strokeRect(pixelX, pixelY, width, height)
-          .strokeRect(pixelX, pixelY, baseWidth, baseHeight);
     }
 
     anyKey (event: any)
