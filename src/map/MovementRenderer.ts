@@ -20,7 +20,7 @@ export class MovementRenderer{
         this.reset();
         
         let startTile = true;
-        const markerOffset = 1;
+        const markerOffset = 0.5;
         // creates a hexagonal movement marker based on tile size
         tileCoordinates.forEach(coordinates => {
             // find tile by cube coordinates
@@ -33,7 +33,7 @@ export class MovementRenderer{
                 if(startTile) {
                     movementMarker.lineStyle(2, this.colorStartMarker, 1);
                 } else {
-                    movementMarker.lineStyle(3, this.colorMovementMarker, 1);
+                    movementMarker.lineStyle(2, this.colorMovementMarker, 1);
                 }
                 movementMarker.beginPath();
                 movementMarker.moveTo(markerOffset, (this.map.tileHeight / 4) + markerOffset);
