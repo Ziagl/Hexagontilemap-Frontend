@@ -127,8 +127,8 @@ export class Game extends Scene
         this.marker.closePath();
         this.marker.strokePath();
 
-        //this.cameras.main.setZoom(2);
-        //this.cameras.main.centerOn(200, 100);
+        this.cameras.main.setZoom(2);
+        this.cameras.main.centerOn(200, 100);
 
         const controlConfig = {
             camera: this.cameras.main,
@@ -152,75 +152,59 @@ export class Game extends Scene
                 // get the tile under the curser (can be null if outside map)
                 const tile = this.groundLayer.getTileAtWorldXY(worldPoint.x, worldPoint.y);
                 if (tile){
+                    const cubeCoords = offsetToCube(this._hexSetting, {col: tile.x, row: tile.y});
                     if(this.menu) {
                         this.menu.setMenuVisible(true);
                         this.menu.setTileImage(tile.index + 1);
-                        const cubeCoords = offsetToCube({offset: -1, orientation: Orientation.POINTY}, {col: tile.x, row: tile.y});
                         this.menu.setTileInformation("OffsetCoords: " + tile.x + "," + tile.y + " , CubeCoords: " + cubeCoords.q + "," + cubeCoords.r + "," + cubeCoords.s + " , Index: " + tile.index);
+                    }
+
+                    // generate markers for moveable tiles
+                    if(this.movementRenderer.isVisible()) {
+                        // if markers already exists and now clicked one of them -> compute path
+                        if(this.reachableTiles.length > 0) {
+                            const startCoords = this.reachableTiles[0];
+                            const endCoords = cubeCoords;
+                            let computePath = false;
+
+                            // check if compute path is possible
+                            if(startCoords.q != endCoords.q || startCoords.r != endCoords.r) {
+                                this.reachableTiles.forEach(coordinates => {
+                                    if(coordinates.q == cubeCoords.q && 
+                                    coordinates.r == cubeCoords.r && 
+                                    coordinates.s == cubeCoords.s) {
+                                        computePath = true;
+                                        return;
+                                    }
+                                });
+                                if(computePath == false) {
+                                    // if clicked outside of marked tiles -> remove path
+                                    this.pathTiles = [];
+                                }
+                            } else {
+                                // if clicked on start tile -> remove path
+                                this.pathTiles = [];
+                            }
+                            // find path from start to end and render it
+                            if(computePath) {
+                                this.pathTiles = this.pathFinder.computePath(startCoords, endCoords); 
+                                this.movementRenderer.create(this.pathTiles);
+                            }
+                        }
+                        // reset rendered path if there is no path
+                        if(this.pathTiles.length == 0) {
+                            this.movementRenderer.reset();
+                        }
+                    }
+                    // compute reachable tiles and render them
+                    if(this.pathTiles.length == 0) {    
+                        this.reachableTiles = this.pathFinder.reachableTiles(cubeCoords, 6);
+                        this.movementRenderer.create(this.reachableTiles);
                     }
                 } else {
                     if(this.menu) {
                         this.menu.setMenuVisible(false);
                     }
-                }
-
-                const cubeCoords = offsetToCube(this._hexSetting, {col: tile.x, row: tile.y});
-
-                // generate markers for moveable tiles
-                if(this.movementRenderer.isVisible()) {
-                    // if markers already exists and now clicked one of them -> compute path
-                    if(this.reachableTiles.length > 0) {
-                        const startCoords = this.reachableTiles[0];
-                        const endCoords = cubeCoords;
-                        let computePath = false;
-
-                        console.log("startCoords: q:"+startCoords.q+"r:"+startCoords.r+"s:"+startCoords.s);
-                        console.log("endCoords: q:"+endCoords.q+"r:"+endCoords.r+"s:"+endCoords.s);
-
-                        // check if compute path is possible
-                        if(startCoords.q != endCoords.q ||
-                           startCoords.r != endCoords.r ||
-                           startCoords.s != endCoords.s
-                        ) {
-                            this.reachableTiles.forEach(coordinates => {
-                                if(coordinates.q == cubeCoords.q && 
-                                   coordinates.r == cubeCoords.r && 
-                                   coordinates.s == cubeCoords.s) {
-                                    computePath = true;
-                                    return;
-                                }
-                            });
-                            if(computePath == false) {
-                                // if clicked outside of marked tiles -> remove path
-                                this.pathTiles = [];
-                            }
-                        } else {
-                            // if clicked on start tile -> remove path
-                            this.pathTiles = [];
-                        }
-                        
-                        // compute path
-                        if(computePath) {
-                            console.log("compute path now!");
-                            this.pathTiles = this.pathFinder.computePath(startCoords, endCoords);
-                            console.log("found path! " + this.pathTiles.length);
-                            
-                            this.movementRenderer.create(this.pathTiles);
-                        }
-                    }
-
-                    if(this.pathTiles.length == 0) {
-                        this.movementRenderer.reset();
-                    } else {
-                        
-                    }
-                }
-
-                if(this.pathTiles.length == 0) {
-                    // compute reachable tiles
-                    this.reachableTiles = this.pathFinder.reachableTiles(cubeCoords, 6);
-
-                    this.movementRenderer.create(this.reachableTiles);
                 }
             });
             this.input.on(Phaser.Input.Events.POINTER_WHEEL, (pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number, deltaZ: number) => {
