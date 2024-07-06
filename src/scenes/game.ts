@@ -6,6 +6,7 @@ import { CubeCoordinates, HexOffset, Orientation, offsetToCube } from 'honeycomb
 import { MovementCosts, MovementType } from '../map/MovementCosts.ts';
 import { Dictionary } from '../interfaces/IDictionary.ts';
 import { MovementRenderer } from '../map/MovementRenderer.ts';
+import { Unit } from '../models/Unit.ts';
 
 export class Game extends Scene
 {
@@ -47,6 +48,7 @@ export class Game extends Scene
     {
         // map
         this.load.image('tiles', 'assets/tileset.png');
+        this.load.image('plane', 'assets/units/plane/plane_E.png');
         //this.load.tilemapTiledJSON('map', 'assets/highland.json');
     }
 
@@ -228,6 +230,9 @@ export class Game extends Scene
         // load game menu scene
         this.scene.launch('GameMenu');
         this.menu = this.scene.get('GameMenu') as GameMenu;
+
+        // units
+        this.children.add(new Unit(this, 340 + 15, 320 + 25, 'plane'));
     }
 
     update (time:number, delta:number)
