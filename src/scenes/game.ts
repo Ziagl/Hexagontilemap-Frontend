@@ -109,9 +109,9 @@ export class Game extends Scene
         this.movementRenderer = new MovementRenderer(this, this.tileDictionary, this.map);
 
         //  add a minimap that shows the map from a different zoom level
-        this.minimap = this.cameras.add(0, this.scale.height - (this.scale.height / 4), this.scale.width / 4, this.scale.height / 4).setZoom(1).setName('mini');
+        this.minimap = this.cameras.add(0, this.scale.height - (this.scale.height / 4), this.scale.width / 4, this.scale.height / 4).setZoom(0.2).setName('mini');
         this.minimap.setBackgroundColor(0x002244);
-        this.minimap.centerOn(this.map.widthInPixels / 2, this.map.heightInPixels / 2);
+        this.minimap.centerOn(this.map.widthInPixels / 2, (this.map.heightInPixels / 2) - 200);
 
         const cursors = this.input.keyboard!.createCursorKeys();
 
