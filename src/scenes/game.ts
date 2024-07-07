@@ -232,7 +232,7 @@ export class Game extends Scene
         this.menu = this.scene.get('GameMenu') as GameMenu;
 
         // units
-        this.children.add(new Unit(this, 340 + 15, 320 + 25, 'plane'));
+        this.children.add(new Unit(this, 340 + 15, 320 + 25, 'plane').setInteractive(new Phaser.Geom.Circle(16, 17, 16), Phaser.Geom.Circle.Contains));
     }
 
     update (time:number, delta:number)
