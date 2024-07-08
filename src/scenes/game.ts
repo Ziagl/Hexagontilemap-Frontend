@@ -7,6 +7,8 @@ import { MovementCosts, MovementType } from '../map/MovementCosts.ts';
 import { Dictionary } from '../interfaces/IDictionary.ts';
 import { MovementRenderer } from '../map/MovementRenderer.ts';
 import { Unit } from '../models/Unit.ts';
+import { UnitManager } from '@ziagl/tiled-map-units';
+import { Layers } from '../enums/Layers.ts';
 
 export class Game extends Scene
 {
@@ -25,6 +27,9 @@ export class Game extends Scene
     private movementRenderer: MovementRenderer;
     private reachableTiles: CubeCoordinates[] = [];
     private pathTiles: CubeCoordinates[] = [];
+
+    // unit management
+    private unitManager: UnitManager;
 
     private _hexSetting;
     //private _hexDefinition;
@@ -72,6 +77,9 @@ export class Game extends Scene
 
         // initialize path finder
         this.pathFinder = new PathFinder(MovementCosts.generateMap(map, MovementType.LAND), rows, columns);
+        
+        // initialize unit manager
+        this.unitManager = new UnitManager(map, Object.keys(Layers).length, rows, columns);
 
         // initialize empty hexagon map
         const mapData = new Phaser.Tilemaps.MapData({
@@ -232,7 +240,9 @@ export class Game extends Scene
         this.menu = this.scene.get('GameMenu') as GameMenu;
 
         // units
-        this.children.add(new Unit(this, 340 + 15, 320 + 25, 'plane').setInteractive(new Phaser.Geom.Circle(16, 17, 16), Phaser.Geom.Circle.Contains));
+        let unit = new Unit(this, 340 + 15, 320 + 25, 'plane').setInteractive(new Phaser.Geom.Circle(16, 17, 16), Phaser.Geom.Circle.Contains);
+        this.unitManager.createUnit(unit, Layers.LAND);
+        this.children.add(unit);
     }
 
     update (time:number, delta:number)
