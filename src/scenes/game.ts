@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { GameMenu } from './game_menu.ts';
-import { Generator, MapSize, MapType } from '@ziagl/tiled-map-generator';
+import { Generator, MapSize, MapType, TileType } from '@ziagl/tiled-map-generator';
 import { PathFinder } from '@ziagl/tiled-map-path-finder';
 import { CubeCoordinates, HexOffset, Orientation, offsetToCube } from 'honeycomb-grid';
 import { MovementCosts, MovementType } from '../map/MovementCosts.ts';
@@ -79,7 +79,11 @@ export class Game extends Scene
         this.pathFinder = new PathFinder(MovementCosts.generateMap(map, MovementType.LAND), rows, columns);
         
         // initialize unit manager
-        this.unitManager = new UnitManager(map, Object.keys(Layers).length, rows, columns);
+        this.unitManager = new UnitManager(map, Object.keys(Layers).length, rows, columns, [
+            [TileType.DESERT, TileType.FOREST, TileType.HILLS, TileType.JUNGLE, TileType.MOUNTAIN, TileType.PLAIN, TileType.SNOW_HILLS, TileType.SNOW_MOUNTAIN, TileType.SNOW_PLAIN, TileType.SNOW_WATER], 
+            [TileType.DEEP_WATER, TileType.SHALLOW_WATER, TileType.MOUNTAIN, TileType.SNOW_MOUNTAIN], 
+            []
+        ]);
 
         // initialize empty hexagon map
         const mapData = new Phaser.Tilemaps.MapData({
@@ -163,53 +167,60 @@ export class Game extends Scene
                 const tile = this.groundLayer.getTileAtWorldXY(worldPoint.x, worldPoint.y);
                 if (tile){
                     const cubeCoords = offsetToCube(this._hexSetting, {col: tile.x, row: tile.y});
-                    if(this.menu) {
-                        this.menu.setMenuVisible(true);
-                        this.menu.setTileImage(tile.index + 1);
-                        this.menu.setTileInformation("OffsetCoords: " + tile.x + "," + tile.y + " , CubeCoords: " + cubeCoords.q + "," + cubeCoords.r + "," + cubeCoords.s + " , Index: " + tile.index);
-                    }
+                    
+                    // check if it is a unit
+                    const units = this.unitManager.getUnitsByCoordinates(cubeCoords, 1);
+                    console.log("found units: " + units.length);
 
-                    // generate markers for moveable tiles
-                    if(this.movementRenderer.isVisible()) {
-                        // if markers already exists and now clicked one of them -> compute path
-                        if(this.reachableTiles.length > 0) {
-                            const startCoords = this.reachableTiles[0];
-                            const endCoords = cubeCoords;
-                            let computePath = false;
+                    if(units.length === 0) {
+                        if(this.menu) {
+                            this.menu.setMenuVisible(true);
+                            this.menu.setTileImage(tile.index + 1);
+                            this.menu.setTileInformation("OffsetCoords: " + tile.x + "," + tile.y + " , CubeCoords: " + cubeCoords.q + "," + cubeCoords.r + "," + cubeCoords.s + " , Index: " + tile.index);
+                        }
+                    } else {
+                        // generate markers for moveable tiles
+                        if(this.movementRenderer.isVisible()) {
+                            // if markers already exists and now clicked one of them -> compute path
+                            if(this.reachableTiles.length > 0) {
+                                const startCoords = this.reachableTiles[0];
+                                const endCoords = cubeCoords;
+                                let computePath = false;
 
-                            // check if compute path is possible
-                            if(startCoords.q != endCoords.q || startCoords.r != endCoords.r) {
-                                this.reachableTiles.forEach(coordinates => {
-                                    if(coordinates.q == cubeCoords.q && 
-                                    coordinates.r == cubeCoords.r && 
-                                    coordinates.s == cubeCoords.s) {
-                                        computePath = true;
-                                        return;
+                                // check if compute path is possible
+                                if(startCoords.q != endCoords.q || startCoords.r != endCoords.r) {
+                                    this.reachableTiles.forEach(coordinates => {
+                                        if(coordinates.q == cubeCoords.q && 
+                                        coordinates.r == cubeCoords.r && 
+                                        coordinates.s == cubeCoords.s) {
+                                            computePath = true;
+                                            return;
+                                        }
+                                    });
+                                    if(computePath == false) {
+                                        // if clicked outside of marked tiles -> remove path
+                                        this.pathTiles = [];
                                     }
-                                });
-                                if(computePath == false) {
-                                    // if clicked outside of marked tiles -> remove path
+                                } else {
+                                    // if clicked on start tile -> remove path
                                     this.pathTiles = [];
                                 }
-                            } else {
-                                // if clicked on start tile -> remove path
-                                this.pathTiles = [];
+                                // find path from start to end and render it
+                                if(computePath) {
+                                    this.pathTiles = this.pathFinder.computePath(startCoords, endCoords); 
+                                    this.movementRenderer.create(this.pathTiles);
+                                }
                             }
-                            // find path from start to end and render it
-                            if(computePath) {
-                                this.pathTiles = this.pathFinder.computePath(startCoords, endCoords); 
-                                this.movementRenderer.create(this.pathTiles);
+                            // reset rendered path if there is no path
+                            if(this.pathTiles.length == 0) {
+                                this.movementRenderer.reset();
                             }
                         }
-                        // reset rendered path if there is no path
-                        if(this.pathTiles.length == 0) {
-                            this.movementRenderer.reset();
+                        // compute reachable tiles and render them
+                        if(this.pathTiles.length == 0) {    
+                            this.reachableTiles = this.pathFinder.reachableTiles(cubeCoords, 6);
+                            this.movementRenderer.create(this.reachableTiles);
                         }
-                    }
-                    // compute reachable tiles and render them
-                    if(this.pathTiles.length == 0) {    
-                        this.reachableTiles = this.pathFinder.reachableTiles(cubeCoords, 6);
-                        this.movementRenderer.create(this.reachableTiles);
                     }
                 } else {
                     if(this.menu) {
@@ -240,8 +251,11 @@ export class Game extends Scene
         this.menu = this.scene.get('GameMenu') as GameMenu;
 
         // units
-        let unit = new Unit(this, 340 + 15, 320 + 25, 'plane').setInteractive(new Phaser.Geom.Circle(16, 17, 16), Phaser.Geom.Circle.Contains);
-        this.unitManager.createUnit(unit, Layers.LAND);
+        let unit = new Unit(this, 80 + 15, 115 + 25, 'plane').setInteractive(new Phaser.Geom.Circle(16, 17, 16), Phaser.Geom.Circle.Contains);
+        unit.unitLayer = Layers.AIR;
+        unit.unitPosition = { q:0, r:5, s:-5 };
+        unit.unitPlayer = 1;
+        this.unitManager.createUnit(unit);
         this.children.add(unit);
     }
 

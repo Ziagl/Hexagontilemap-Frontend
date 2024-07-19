@@ -10,10 +10,11 @@ export class Unit extends Phaser.GameObjects.Image implements IUnit
 
         // TODO
     }
-    
+
     // properties from IUnit
     unitId: number;
     unitPosition: CubeCoordinates;
+    unitLayer: number;
     unitPlayer: number;
     unitType: number;
     unitHealth: number;
