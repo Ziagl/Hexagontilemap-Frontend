@@ -15,9 +15,11 @@
     "homepage": "https://github.com/phaserjs/template-vite-ts#readme",
     "scripts": {
         "dev": "vite --config vite/config.dev.mjs",
-        "build": "vite build --config vite/config.prod.mjs"
+        "build": "vite build --config vite/config.prod.mjs",
+        "format": "prettier ./src --write"
     },
     "devDependencies": {
+        "prettier": "^3.3.3",
         "terser": "^5.28.1",
         "typescript": "^5.3.3",
         "vite": "^5.1.4"
@@ -25,7 +27,7 @@
     "dependencies": {
         "@kayahr/tiled": "^0.0.1",
         "@ziagl/tiled-map-generator": "^0.1.2",
-        "@ziagl/tiled-map-path-finder": "^0.1.2",
+        "@ziagl/tiled-map-path-finder": "^0.1.3",
         "@ziagl/tiled-map-units": "^0.1.2",
         "honeycomb-grid": "^4.1.5",
         "phaser": "^3.80.1",
