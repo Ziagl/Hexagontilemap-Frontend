@@ -213,7 +213,7 @@ export class Game extends Scene {
             this.lastClickedTile.r === cubeCoords.r && 
             this.lastClickedTile.s === cubeCoords.s) {
               // update position for unit manager
-              const success = this.unitManager.moveUnit(this.lastSelectedUnitId, cubeCoords);
+              const success = this.unitManager.moveUnitByPath(this.lastSelectedUnitId, this.pathTiles);
               if (success) {
                 // update position of display
                 let unit = this.unitManager.getUnitById(this.lastSelectedUnitId) as Unit;
