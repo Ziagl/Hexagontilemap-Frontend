@@ -50,7 +50,11 @@ export class Game extends Scene {
   private unitManager: UnitManager;
 
   // game
+  private readonly tileWidth = 32;
+  private readonly tileHeight = 34;
   private readonly playerId = 1;
+  private lastSelectedUnitId: number | undefined = undefined;
+  private lastClickedTile: CubeCoordinates | undefined = undefined;
 
   private _hexSetting;
   //private _hexDefinition;
@@ -119,20 +123,20 @@ export class Game extends Scene {
     const mapData = new Phaser.Tilemaps.MapData({
       width: columns,
       height: rows,
-      tileWidth: 32,
-      tileHeight: 34,
-      widthInPixels: columns * 32,
-      heightInPixels: rows * 34,
+      tileWidth: this.tileWidth,
+      tileHeight: this.tileHeight,
+      widthInPixels: columns * this.tileWidth,
+      heightInPixels: rows * this.tileHeight,
       orientation: Phaser.Tilemaps.Orientation.HEXAGONAL,
       format: Phaser.Tilemaps.Formats.ARRAY_2D,
       renderOrder: 'right-down',
     });
-    mapData.hexSideLength = 34 / 2; // this needs to be height for pointy hexagon map
+    mapData.hexSideLength = this.tileHeight / 2; // this needs to be height for pointy hexagon map
 
     this.map = new Phaser.Tilemaps.Tilemap(this, mapData);
     this.map.hexSideLength = mapData.hexSideLength;
     const tileset = this.map.addTilesetImage('tileset', 'tiles');
-    this.groundLayer = this.map.createBlankLayer('groundLayer', tileset!, 0, 0, columns, rows, 32, 34)!;
+    this.groundLayer = this.map.createBlankLayer('groundLayer', tileset!, 0, 0, columns, rows, this.tileWidth, this.tileHeight)!;
     this.groundLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
 
     // convert 1D -> 2D
@@ -201,8 +205,33 @@ export class Game extends Scene {
         if (tile) {
           const cubeCoords = offsetToCube(this._hexSetting, { col: tile.x, row: tile.y });
 
+          // move unit
+          if(this.lastClickedTile !== undefined && 
+            this.lastSelectedUnitId !== undefined &&
+            this.pathTiles.length > 0 &&
+            this.lastClickedTile.q === cubeCoords.q && 
+            this.lastClickedTile.r === cubeCoords.r && 
+            this.lastClickedTile.s === cubeCoords.s) {
+              // update position for unit manager
+              const success = this.unitManager.moveUnit(this.lastSelectedUnitId, cubeCoords);
+              if (success) {
+                // update position of display
+                let unit = this.unitManager.getUnitById(this.lastSelectedUnitId) as Unit;
+                unit.x = tile.pixelX + this.tileWidth / 2;
+                unit.y = tile.pixelY + this.tileHeight / 2;
+                this.lastSelectedUnitId = undefined;
+                this.lastClickedTile = undefined;
+              }
+          }
+
           // check if it is a unit
           const units = this.unitManager.getUnitsByCoordinates(cubeCoords, this.playerId);
+
+          // select unit (can also handle more than one unit on the same tile)
+          // TODO
+          if(units.length > 0) {
+            this.lastSelectedUnitId = units[0].unitId ?? undefined;
+          }
 
           if (units.length === 0) {
             if (this.menu) {
@@ -224,8 +253,15 @@ export class Game extends Scene {
               );
             }
           } else {
+            let reachablePath = true;
+            // select unit a second time with shown path -> remove path
+            if(this.movementRenderer.isVisible()) {
+              this.pathTiles = [];
+              this.movementRenderer.reset();
+              reachablePath = false;
+            }
             // compute reachable tiles and render them
-            if (this.pathTiles.length == 0) {
+            if (this.pathTiles.length == 0 && reachablePath) {
               const unit = units[0];
               this.reachableTiles = this.pathFinder.reachableTiles(cubeCoords, unit.unitMovement, unit.unitLayer);
               this.movementRenderer.create(this.reachableTiles);
@@ -253,10 +289,10 @@ export class Game extends Scene {
                   // if clicked outside of marked tiles -> remove path
                   this.pathTiles = [];
                 }
-              } else {
+              }/* else {
                 // if clicked on start tile -> remove path
                 this.pathTiles = [];
-              }
+              }*/
               // find path from start to end and render it
               if (computePath) {
                 this.pathTiles = this.pathFinder.computePath(startCoords, endCoords, unit.unitLayer);
@@ -265,9 +301,13 @@ export class Game extends Scene {
             }
             // reset rendered path if there is no path
             if (this.pathTiles.length == 0) {
+              this.pathTiles = [];
               this.movementRenderer.reset();
             }
           }
+
+          // remember last clicked coordinate for unit
+          this.lastClickedTile = cubeCoords;
         } else {
           if (this.menu) {
             this.menu.setMenuVisible(false);
