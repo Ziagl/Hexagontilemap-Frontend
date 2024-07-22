@@ -54,6 +54,7 @@ export class Game extends Scene {
   private readonly tileHeight = 34;
   private readonly playerId = 1;
   private lastSelectedUnitId: number | undefined = undefined;
+  private lastSelectedUnit: Unit | undefined = undefined;
   private lastClickedTile: CubeCoordinates | undefined = undefined;
 
   private _hexSetting;
@@ -76,6 +77,8 @@ export class Game extends Scene {
     // map
     this.load.image('tiles', 'assets/tileset.png');
     this.load.image('plane', 'assets/units/plane/plane_E.png');
+    this.load.image('tank', 'assets/units/tank/tank_E.png');
+    this.load.image('ship', 'assets/units/ship/ship_E.png');
     //this.load.tilemapTiledJSON('map', 'assets/highland.json');
   }
 
@@ -221,6 +224,7 @@ export class Game extends Scene {
                 unit.y = tile.pixelY + this.tileHeight / 2;
                 this.lastSelectedUnitId = undefined;
                 this.lastClickedTile = undefined;
+                this.lastSelectedUnit = undefined;
               }
           }
 
@@ -231,6 +235,7 @@ export class Game extends Scene {
           // TODO
           if(units.length > 0) {
             this.lastSelectedUnitId = units[0].unitId ?? undefined;
+            this.lastSelectedUnit = units[0] as Unit;
           }
 
           if (units.length === 0) {
@@ -261,9 +266,8 @@ export class Game extends Scene {
               reachablePath = false;
             }
             // compute reachable tiles and render them
-            if (this.pathTiles.length == 0 && reachablePath) {
-              const unit = units[0];
-              this.reachableTiles = this.pathFinder.reachableTiles(cubeCoords, unit.unitMovement, unit.unitLayer);
+            if (this.pathTiles.length == 0 && reachablePath && this.lastSelectedUnit !== undefined) {
+              this.reachableTiles = this.pathFinder.reachableTiles(cubeCoords, this.lastSelectedUnit.unitMovement, this.lastSelectedUnit.unitLayer);
               this.movementRenderer.create(this.reachableTiles);
               createdPath = true; // set this flag to avoid removing path
             }
@@ -294,8 +298,8 @@ export class Game extends Scene {
                 this.pathTiles = [];
               }*/
               // find path from start to end and render it
-              if (computePath) {
-                this.pathTiles = this.pathFinder.computePath(startCoords, endCoords, unit.unitLayer);
+              if (computePath && this.lastSelectedUnit !== undefined) {
+                this.pathTiles = this.pathFinder.computePath(startCoords, endCoords, this.lastSelectedUnit.unitLayer);
                 this.movementRenderer.create(this.pathTiles);
               }
             }
@@ -345,16 +349,71 @@ export class Game extends Scene {
     this.menu = this.scene.get('GameMenu') as GameMenu;
 
     // units
-    let unit = new Unit(this, 80 + 16, 115 + 28, 'plane').setInteractive(
+    let tankCoordinate = {q:0, r:0, s:0};
+    let tankCoordinateOffset = {x:0, y:0};
+    let shipCoordinate = {q:0, r:0, s:0};
+    let shipCoordinateOffset = {x:0, y:0};
+    let planeCoordinate = { q: 0, r: 5, s: -5 };
+    for(let i = 5; i < 15; ++i) {
+      for(let j = 5; j < 15; ++j) {
+        if(tankCoordinate.q === 0) {
+          if(map[i + (i*columns) + j] !== TileType.DEEP_WATER && map[i + (i*columns) + j] !== TileType.SHALLOW_WATER) {
+            tankCoordinate = offsetToCube(this._hexSetting, { col: j, row: i });
+            tankCoordinateOffset = { x: j, y: i };
+          }
+        }
+        if(shipCoordinate.q === 0) {
+          if(map[i + (i*columns) + j] === TileType.DEEP_WATER || map[i + (i*columns) +  j] === TileType.SHALLOW_WATER) {
+            shipCoordinate = offsetToCube(this._hexSetting, { col: j, row: i });
+            shipCoordinateOffset = { x: j, y: i };
+          }
+        }
+        if(tankCoordinate.q !== 0 && shipCoordinate.q !== 0) {
+          break;
+        }
+      }
+    }
+
+    // create tank
+    console.log('tank coordinate: ' + tankCoordinateOffset.x + ',' + tankCoordinateOffset.y);
+    let tankTile = this.groundLayer.getTileAt(tankCoordinateOffset.x, tankCoordinateOffset.y);
+    let tank = new Unit(this, tankTile.pixelX + this.tileWidth / 2, tankTile.pixelY + this.tileHeight / 2, 'tank').setInteractive(
       new Phaser.Geom.Circle(16, 17, 16),
       Phaser.Geom.Circle.Contains,
     );
-    unit.unitLayer = Layers.AIR;
-    unit.unitPosition = { q: 0, r: 5, s: -5 };
-    unit.unitPlayer = 1;
-    unit.unitMovement = 5;
-    this.unitManager.createUnit(unit);
-    this.children.add(unit);
+    tank.unitLayer = Layers.LAND;
+    tank.unitPosition = tankCoordinate;
+    tank.unitPlayer = this.playerId;
+    tank.unitMovement = 3;
+    if(this.unitManager.createUnit(tank)) {console.log('tank created')};
+    this.children.add(tank);
+
+    // create ship
+    console.log('ship coordinate: ' + shipCoordinateOffset.x + ',' + shipCoordinateOffset.y);
+    let shipTile = this.groundLayer.getTileAt(shipCoordinateOffset.x, shipCoordinateOffset.y);
+    let ship = new Unit(this, shipTile.pixelX + this.tileWidth / 2, shipTile.pixelY + this.tileHeight / 2, 'ship').setInteractive(
+      new Phaser.Geom.Circle(16, 17, 16),
+      Phaser.Geom.Circle.Contains,
+    );
+    ship.unitLayer = Layers.SEA;
+    ship.unitPosition = shipCoordinate;
+    ship.unitPlayer = this.playerId;
+    ship.unitMovement = 5;
+    if(this.unitManager.createUnit(ship)) { console.log('ship created'); }
+    this.children.add(ship);
+
+    // create plane
+    let planeTile = this.groundLayer.getTileAt(2, 5);
+    let plane = new Unit(this, planeTile.pixelX + this.tileWidth / 2, planeTile.pixelY + this.tileHeight / 2, 'plane').setInteractive(
+      new Phaser.Geom.Circle(16, 17, 16),
+      Phaser.Geom.Circle.Contains,
+    );
+    plane.unitLayer = Layers.AIR;
+    plane.unitPosition = planeCoordinate;
+    plane.unitPlayer = this.playerId;
+    plane.unitMovement = 8;
+    if(this.unitManager.createUnit(plane)) { console.log('plane created'); }
+    this.children.add(plane);
   }
 
   update(time: number, delta: number) {
