@@ -9,6 +9,7 @@ import { MovementRenderer } from '../map/MovementRenderer.ts';
 import { Unit } from '../models/Unit.ts';
 import { UnitManager } from '@ziagl/tiled-map-units';
 import { Layers } from '../enums/Layers.ts';
+import ComponentService from '../services/ComponentService.ts';
 
 export class Game extends Scene {
   private isDesktop = false;
@@ -20,6 +21,9 @@ export class Game extends Scene {
   private groundLayer: Phaser.Tilemaps.TilemapLayer;
   private menu: GameMenu;
   private minimap: Phaser.Cameras.Scene2D.Camera;
+
+  // services
+  private components: ComponentService;
 
   // path finding
   private pathFinder: PathFinder;
@@ -71,6 +75,12 @@ export class Game extends Scene {
   init() {
     this.isDesktop = this.sys.game.device.os.desktop;
     this.isAndroid = this.sys.game.device.os.android;
+
+    // create component service
+    this.components = new ComponentService();
+    this.events.on(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.components.destroy();
+    });
   }
 
   preload() {
@@ -432,6 +442,9 @@ export class Game extends Scene {
     } else {
       this.marker.alpha = 0; // sets marker invisible
     }
+
+    // update all components
+    this.components.update(delta);
   }
 
   anyKey(event: any) {
