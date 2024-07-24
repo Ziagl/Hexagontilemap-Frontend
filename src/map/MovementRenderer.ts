@@ -1,4 +1,4 @@
-import { CubeCoordinates } from 'honeycomb-grid';
+import { CubeCoordinates, move } from 'honeycomb-grid';
 import { Dictionary } from '../interfaces/IDictionary';
 import { Scene } from 'phaser';
 
@@ -36,6 +36,7 @@ export class MovementRenderer {
           movementMarker.lineStyle(2, this.colorMovementMarker, 1);
         }
         movementMarker.beginPath();
+        movementMarker.depth = 50;
         movementMarker.moveTo(markerOffset, this.map.tileHeight / 4 + markerOffset);
         movementMarker.lineTo(markerOffset, (this.map.tileHeight / 4) * 3 - markerOffset);
         movementMarker.lineTo(this.map.tileWidth / 2 - markerOffset, this.map.tileHeight - markerOffset);

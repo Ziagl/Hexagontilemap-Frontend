@@ -10,6 +10,7 @@ import { Unit } from '../models/Unit.ts';
 import { UnitManager } from '@ziagl/tiled-map-units';
 import { Layers } from '../enums/Layers.ts';
 import ComponentService from '../services/ComponentService.ts';
+import UIBarComponent from '../components/UIBarComponent.ts';
 
 export class Game extends Scene {
   private isDesktop = false;
@@ -81,6 +82,7 @@ export class Game extends Scene {
     this.events.on(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.components.destroy();
     });
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.lateUpdate, this);  // draw components at last
   }
 
   preload() {
@@ -179,6 +181,7 @@ export class Game extends Scene {
 
     // creates a hexagonal marker based on tile size
     this.marker = this.add.graphics();
+    this.marker.depth = 100;
     this.marker.lineStyle(2, 0x000000, 1);
     this.marker.beginPath();
     this.marker.moveTo(0, this.map.tileHeight / 4);
@@ -397,6 +400,7 @@ export class Game extends Scene {
     tank.unitMovement = 3;
     if(this.unitManager.createUnit(tank)) {console.log('tank created')};
     this.children.add(tank);
+    this.components.addComponent(tank, new UIBarComponent());
 
     // create ship
     console.log('ship coordinate: ' + shipCoordinateOffset.x + ',' + shipCoordinateOffset.y);
@@ -411,6 +415,7 @@ export class Game extends Scene {
     ship.unitMovement = 5;
     if(this.unitManager.createUnit(ship)) { console.log('ship created'); }
     this.children.add(ship);
+    this.components.addComponent(ship, new UIBarComponent());
 
     // create plane
     let planeTile = this.groundLayer.getTileAt(2, 5);
@@ -424,6 +429,7 @@ export class Game extends Scene {
     plane.unitMovement = 8;
     if(this.unitManager.createUnit(plane)) { console.log('plane created'); }
     this.children.add(plane);
+    this.components.addComponent(plane, new UIBarComponent());
   }
 
   update(time: number, delta: number) {
@@ -442,7 +448,10 @@ export class Game extends Scene {
     } else {
       this.marker.alpha = 0; // sets marker invisible
     }
+  }
 
+  // update for UI stuff
+  lateUpdate(time: number, delta: number) {
     // update all components
     this.components.update(delta);
   }
