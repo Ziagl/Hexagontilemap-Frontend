@@ -10,7 +10,8 @@ import { Unit } from '../models/Unit.ts';
 import { UnitManager } from '@ziagl/tiled-map-units';
 import { Layers } from '../enums/Layers.ts';
 import ComponentService from '../services/ComponentService.ts';
-import UIBarComponent from '../components/UIBarComponent.ts';
+import HealthBar from '../models/HealthBar.ts';
+import UnitUIComponent from '../components/UnitUIComponent.ts';
 
 export class Game extends Scene {
   private isDesktop = false;
@@ -88,10 +89,16 @@ export class Game extends Scene {
   preload() {
     // map
     this.load.image('tiles', 'assets/tileset.png');
+    //this.load.tilemapTiledJSON('map', 'assets/highland.json');
+    // units
     this.load.image('plane', 'assets/units/plane/plane_E.png');
     this.load.image('tank', 'assets/units/tank/tank_E.png');
     this.load.image('ship', 'assets/units/ship/ship_E.png');
-    //this.load.tilemapTiledJSON('map', 'assets/highland.json');
+    // UI
+    this.load.image('bar-horizontal-green', 'assets/ui/bar-horizontal-green.png');
+    this.load.image('bar-horizontal-orange', 'assets/ui/bar-horizontal-orange.png');
+    this.load.image('bar-horizontal-background', 'assets/ui/bar-horizontal-background.png');
+    
   }
 
   create() {
@@ -400,7 +407,10 @@ export class Game extends Scene {
     tank.unitMovement = 3;
     if(this.unitManager.createUnit(tank)) {console.log('tank created')};
     this.children.add(tank);
-    this.components.addComponent(tank, new UIBarComponent());
+    this.components.addComponent(tank, new UnitUIComponent(
+      this.add.image(0, 0, 'bar-horizontal-green'),
+      this.add.image(0, 0, 'bar-horizontal-orange'),
+      this.add.image(0, 0, 'bar-horizontal-background')));
 
     // create ship
     console.log('ship coordinate: ' + shipCoordinateOffset.x + ',' + shipCoordinateOffset.y);
@@ -415,7 +425,10 @@ export class Game extends Scene {
     ship.unitMovement = 5;
     if(this.unitManager.createUnit(ship)) { console.log('ship created'); }
     this.children.add(ship);
-    this.components.addComponent(ship, new UIBarComponent());
+    this.components.addComponent(ship, new UnitUIComponent(
+      this.add.image(0, 0, 'bar-horizontal-green'),
+      this.add.image(0, 0, 'bar-horizontal-orange'),
+      this.add.image(0, 0, 'bar-horizontal-background')));
 
     // create plane
     let planeTile = this.groundLayer.getTileAt(2, 5);
@@ -429,7 +442,11 @@ export class Game extends Scene {
     plane.unitMovement = 8;
     if(this.unitManager.createUnit(plane)) { console.log('plane created'); }
     this.children.add(plane);
-    this.components.addComponent(plane, new UIBarComponent());
+    this.components.addComponent(plane, new UnitUIComponent(
+      this.add.image(0, 0, 'bar-horizontal-green'),
+      this.add.image(0, 0, 'bar-horizontal-orange'),
+      this.add.image(0, 0, 'bar-horizontal-background')));
+
   }
 
   update(time: number, delta: number) {
