@@ -18,6 +18,7 @@ export class Unit extends Phaser.GameObjects.Image implements IUnit {
   unitHealth: number;
   unitMaxHealth: number;
   unitMovement: number;
+  unitMaxMovement: number;
   unitAttack: number;
   unitDefense: number;
   unitRange: number;

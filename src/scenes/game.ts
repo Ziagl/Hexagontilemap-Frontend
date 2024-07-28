@@ -245,6 +245,13 @@ export class Game extends Scene {
                 this.lastSelectedUnitId = undefined;
                 this.lastClickedTile = undefined;
                 this.lastSelectedUnit = undefined;
+                // update unit UI
+                const uiComponent = this.components.findComponent(unit, UnitUIComponent) as UnitUIComponent;
+                if(uiComponent) {
+                  uiComponent.updateHealthBar(unit.unitHealth / unit.unitMaxHealth);
+                  uiComponent.updateMovementBar(unit.unitMovement / unit.unitMaxMovement);
+                  uiComponent.updateStep();
+                }
               }
           }
 
@@ -377,13 +384,16 @@ export class Game extends Scene {
     for(let i = 5; i < 15; ++i) {
       for(let j = 5; j < 15; ++j) {
         if(tankCoordinate.q === 0) {
-          if(map[i + (i*columns) + j] !== TileType.DEEP_WATER && map[i + (i*columns) + j] !== TileType.SHALLOW_WATER) {
+          if(map[(i*columns) + j] !== TileType.DEEP_WATER && 
+             map[(i*columns) + j] !== TileType.SHALLOW_WATER &&
+             map[(i*columns) + j] !== TileType.MOUNTAIN) {
             tankCoordinate = offsetToCube(this._hexSetting, { col: j, row: i });
             tankCoordinateOffset = { x: j, y: i };
           }
         }
         if(shipCoordinate.q === 0) {
-          if(map[i + (i*columns) + j] === TileType.DEEP_WATER || map[i + (i*columns) +  j] === TileType.SHALLOW_WATER) {
+          if(map[(i*columns) + j] === TileType.DEEP_WATER ||
+            map[(i*columns) +  j] === TileType.SHALLOW_WATER) {
             shipCoordinate = offsetToCube(this._hexSetting, { col: j, row: i });
             shipCoordinateOffset = { x: j, y: i };
           }
@@ -394,59 +404,10 @@ export class Game extends Scene {
       }
     }
 
-    // create tank
-    console.log('tank coordinate: ' + tankCoordinateOffset.x + ',' + tankCoordinateOffset.y);
-    let tankTile = this.groundLayer.getTileAt(tankCoordinateOffset.x, tankCoordinateOffset.y);
-    let tank = new Unit(this, tankTile.pixelX + this.tileWidth / 2, tankTile.pixelY + this.tileHeight / 2, 'tank').setInteractive(
-      new Phaser.Geom.Circle(16, 17, 16),
-      Phaser.Geom.Circle.Contains,
-    );
-    tank.unitLayer = Layers.LAND;
-    tank.unitPosition = tankCoordinate;
-    tank.unitPlayer = this.playerId;
-    tank.unitMovement = 3;
-    if(this.unitManager.createUnit(tank)) {console.log('tank created')};
-    this.children.add(tank);
-    this.components.addComponent(tank, new UnitUIComponent(
-      this.add.image(0, 0, 'bar-horizontal-green'),
-      this.add.image(0, 0, 'bar-horizontal-orange'),
-      this.add.image(0, 0, 'bar-horizontal-background')));
-
-    // create ship
-    console.log('ship coordinate: ' + shipCoordinateOffset.x + ',' + shipCoordinateOffset.y);
-    let shipTile = this.groundLayer.getTileAt(shipCoordinateOffset.x, shipCoordinateOffset.y);
-    let ship = new Unit(this, shipTile.pixelX + this.tileWidth / 2, shipTile.pixelY + this.tileHeight / 2, 'ship').setInteractive(
-      new Phaser.Geom.Circle(16, 17, 16),
-      Phaser.Geom.Circle.Contains,
-    );
-    ship.unitLayer = Layers.SEA;
-    ship.unitPosition = shipCoordinate;
-    ship.unitPlayer = this.playerId;
-    ship.unitMovement = 5;
-    if(this.unitManager.createUnit(ship)) { console.log('ship created'); }
-    this.children.add(ship);
-    this.components.addComponent(ship, new UnitUIComponent(
-      this.add.image(0, 0, 'bar-horizontal-green'),
-      this.add.image(0, 0, 'bar-horizontal-orange'),
-      this.add.image(0, 0, 'bar-horizontal-background')));
-
-    // create plane
-    let planeTile = this.groundLayer.getTileAt(2, 5);
-    let plane = new Unit(this, planeTile.pixelX + this.tileWidth / 2, planeTile.pixelY + this.tileHeight / 2, 'plane').setInteractive(
-      new Phaser.Geom.Circle(16, 17, 16),
-      Phaser.Geom.Circle.Contains,
-    );
-    plane.unitLayer = Layers.AIR;
-    plane.unitPosition = planeCoordinate;
-    plane.unitPlayer = this.playerId;
-    plane.unitMovement = 8;
-    if(this.unitManager.createUnit(plane)) { console.log('plane created'); }
-    this.children.add(plane);
-    this.components.addComponent(plane, new UnitUIComponent(
-      this.add.image(0, 0, 'bar-horizontal-green'),
-      this.add.image(0, 0, 'bar-horizontal-orange'),
-      this.add.image(0, 0, 'bar-horizontal-background')));
-
+    // create example units
+    this.createUnit(tankCoordinate, tankCoordinateOffset, 'tank', 3, Layers.LAND);
+    this.createUnit(shipCoordinate, shipCoordinateOffset, 'ship', 5, Layers.SEA);
+    this.createUnit(planeCoordinate, {x:2, y:5}, 'plane', 8, Layers.AIR);
   }
 
   update(time: number, delta: number) {
@@ -488,5 +449,27 @@ export class Game extends Scene {
     if (code === Phaser.Input.Keyboard.KeyCodes.SPACE) {
       // TODO
     }
+  }
+
+  private createUnit(coordinate: {q:number, r:number, s:number}, offsetCoordinate: {x:number, y:number}, unitType: string, movementPoints: number, layer: number ) {
+    console.log('coordinate: ' + offsetCoordinate.x + ',' + offsetCoordinate.y);
+    let tankTile = this.groundLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
+    let tank = new Unit(this, tankTile.pixelX + this.tileWidth / 2, tankTile.pixelY + this.tileHeight / 2, unitType).setInteractive(
+      new Phaser.Geom.Circle(16, 17, 16),
+      Phaser.Geom.Circle.Contains,
+    );
+    tank.unitLayer = layer;
+    tank.unitPosition = coordinate;
+    tank.unitPlayer = this.playerId;
+    tank.unitMaxHealth = 100;
+    tank.unitHealth = tank.unitMaxHealth;
+    tank.unitMaxMovement = movementPoints;
+    tank.unitMovement = tank.unitMaxMovement;
+    if(this.unitManager.createUnit(tank)) {console.log(unitType + ' created')};
+    this.children.add(tank);
+    this.components.addComponent(tank, new UnitUIComponent(
+      this.add.image(0, 0, 'bar-horizontal-green'),
+      this.add.image(0, 0, 'bar-horizontal-orange'),
+      this.add.image(0, 0, 'bar-horizontal-background')));
   }
 }

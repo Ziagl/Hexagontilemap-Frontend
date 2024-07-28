@@ -38,12 +38,29 @@ export  default class UnitUIComponent implements IComponent {
         .resize(this.barWidth);
     }
 
-    update(dt: number):void {
+    updateHealthBar(percent:number) {
+        if(this.healthBar) {
+            this.healthBar.animateToFill(percent);
+        }
+    }
+
+    updateMovementBar(percent:number) {
+        if(this.movementBar) {
+            this.movementBar.animateToFill(percent);
+        }
+    }
+
+    updateStep() {
+        // triggered updates
         if(!this.healthBar || !this.movementBar) {
             return;
         }
 
         this.healthBar.moveTo(this.gameObject.x - this.barWidth / 2, this.gameObject.y + 17);
         this.movementBar.moveTo(this.gameObject.x - this.barWidth / 2, this.gameObject.y + 19);
+    }
+
+    update(dt: number):void {
+        // real time updates
     }
 }

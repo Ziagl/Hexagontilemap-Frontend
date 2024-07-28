@@ -3,6 +3,7 @@ export default class HealthBar {
     private x:number;
     private y:number;
     private width:number;
+    private backgroundWidth:number;
     private depth:number = 1000;
 
     private leftCap?: Phaser.GameObjects.Image;
@@ -59,6 +60,7 @@ export default class HealthBar {
 
     resize(width: number) {
         this.width = width;
+        this.backgroundWidth = width;
 
         this.layoutSegments();
 
@@ -79,6 +81,7 @@ export default class HealthBar {
             ease: Phaser.Math.Easing.Sine.Out,
             complete: () => {
                 this.layoutSegments();
+                this.width = this.width * percent;
             }
         });
     }
@@ -93,7 +96,7 @@ export default class HealthBar {
         if(this.background) {
             this.background.x = this.x;
             this.background.y = this.y;
-            this.background.displayWidth = this.width;
+            this.background.displayWidth = this.backgroundWidth;
         }
 
         if(this.leftCap) {
