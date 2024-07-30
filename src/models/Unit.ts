@@ -6,6 +6,7 @@ export class Unit extends Phaser.GameObjects.Image implements IUnit {
   constructor(scene: Scene, x: number, y: number, texture: string) {
     super(scene, x, y, texture);
 
+    this.depth = 900;
     // TODO
   }
 

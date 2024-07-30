@@ -10,8 +10,10 @@ import { Unit } from '../models/Unit.ts';
 import { UnitManager } from '@ziagl/tiled-map-units';
 import { Layers } from '../enums/Layers.ts';
 import ComponentService from '../services/ComponentService.ts';
-import HealthBar from '../models/HealthBar.ts';
 import UnitUIComponent from '../components/UnitUIComponent.ts';
+import { CityManager } from '@ziagl/tiled-map-cities';
+import { City } from '../models/City.ts';
+import CityUIComponent from '../components/CityUIComponent.ts';
 
 export class Game extends Scene {
   private isDesktop = false;
@@ -55,6 +57,9 @@ export class Game extends Scene {
   // unit management
   private unitManager: UnitManager;
 
+  // city management
+  private cityManager: CityManager;
+
   // game
   private readonly tileWidth = 32;
   private readonly tileHeight = 34;
@@ -94,6 +99,8 @@ export class Game extends Scene {
     this.load.image('plane', 'assets/units/plane/plane_E.png');
     this.load.image('tank', 'assets/units/tank/tank_E.png');
     this.load.image('ship', 'assets/units/ship/ship_E.png');
+    // cities
+    this.load.image('city', 'assets/cities/city.png');
     // UI
     this.load.image('bar-horizontal-green', 'assets/ui/bar-horizontal-green.png');
     this.load.image('bar-horizontal-orange', 'assets/ui/bar-horizontal-orange.png');
@@ -140,6 +147,9 @@ export class Game extends Scene {
       this.unpassableLand,
       this.unpassableAir,
     ]);
+
+    // initialize city manager
+    this.cityManager = new CityManager(map, rows, columns, this.unpassableLand);
 
     // initialize empty hexagon map
     const mapData = new Phaser.Tilemaps.MapData({
@@ -381,6 +391,8 @@ export class Game extends Scene {
     let shipCoordinate = {q:0, r:0, s:0};
     let shipCoordinateOffset = {x:0, y:0};
     let planeCoordinate = { q: 0, r: 5, s: -5 };
+    let cityCoordinate = {q:0, r:0, s:0};
+    let cityCoordinateOffset = {x:0, y:0};
     for(let i = 5; i < 15; ++i) {
       for(let j = 5; j < 15; ++j) {
         if(tankCoordinate.q === 0) {
@@ -389,6 +401,7 @@ export class Game extends Scene {
              map[(i*columns) + j] !== TileType.MOUNTAIN) {
             tankCoordinate = offsetToCube(this._hexSetting, { col: j, row: i });
             tankCoordinateOffset = { x: j, y: i };
+            continue;
           }
         }
         if(shipCoordinate.q === 0) {
@@ -396,18 +409,31 @@ export class Game extends Scene {
             map[(i*columns) +  j] === TileType.SHALLOW_WATER) {
             shipCoordinate = offsetToCube(this._hexSetting, { col: j, row: i });
             shipCoordinateOffset = { x: j, y: i };
+            continue;
           }
         }
-        if(tankCoordinate.q !== 0 && shipCoordinate.q !== 0) {
+        if(cityCoordinate.q === 0) {
+          if(map[(i*columns) + j] !== TileType.DEEP_WATER && 
+             map[(i*columns) + j] !== TileType.SHALLOW_WATER &&
+             map[(i*columns) + j] !== TileType.MOUNTAIN) {
+            cityCoordinate = offsetToCube(this._hexSetting, { col: j, row: i });
+            cityCoordinateOffset = { x: j, y: i };
+            continue;
+          }
+        }
+        if(tankCoordinate.q !== 0 && shipCoordinate.q !== 0 && cityCoordinate.q !== 0) {
           break;
         }
       }
     }
 
     // create example units
-    this.createUnit(tankCoordinate, tankCoordinateOffset, 'tank', 3, Layers.LAND);
-    this.createUnit(shipCoordinate, shipCoordinateOffset, 'ship', 5, Layers.SEA);
-    this.createUnit(planeCoordinate, {x:2, y:5}, 'plane', 8, Layers.AIR);
+    this.createUnit(tankCoordinate, tankCoordinateOffset, 'tank', this.playerId, 3, Layers.LAND);
+    this.createUnit(shipCoordinate, shipCoordinateOffset, 'ship',  this.playerId, 5, Layers.SEA);
+    this.createUnit(planeCoordinate, {x:2, y:5}, 'plane',  this.playerId, 8, Layers.AIR);
+
+    // create cities
+    this.createCity(cityCoordinate, cityCoordinateOffset, 'Vienna', this.playerId);
   }
 
   update(time: number, delta: number) {
@@ -451,8 +477,7 @@ export class Game extends Scene {
     }
   }
 
-  private createUnit(coordinate: {q:number, r:number, s:number}, offsetCoordinate: {x:number, y:number}, unitType: string, movementPoints: number, layer: number ) {
-    console.log('coordinate: ' + offsetCoordinate.x + ',' + offsetCoordinate.y);
+  private createUnit(coordinate: {q:number, r:number, s:number}, offsetCoordinate: {x:number, y:number}, unitType: string, playerId: number, movementPoints: number, layer: number ) {
     let tankTile = this.groundLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
     let tank = new Unit(this, tankTile.pixelX + this.tileWidth / 2, tankTile.pixelY + this.tileHeight / 2, unitType).setInteractive(
       new Phaser.Geom.Circle(16, 17, 16),
@@ -460,7 +485,7 @@ export class Game extends Scene {
     );
     tank.unitLayer = layer;
     tank.unitPosition = coordinate;
-    tank.unitPlayer = this.playerId;
+    tank.unitPlayer = playerId;
     tank.unitMaxHealth = 100;
     tank.unitHealth = tank.unitMaxHealth;
     tank.unitMaxMovement = movementPoints;
@@ -471,5 +496,22 @@ export class Game extends Scene {
       this.add.image(0, 0, 'bar-horizontal-green'),
       this.add.image(0, 0, 'bar-horizontal-orange'),
       this.add.image(0, 0, 'bar-horizontal-background')));
+  }
+
+  private createCity(coordinate: {q:number, r:number, s:number}, offsetCoordinate: {x:number, y:number}, cityName: string, playerId: number) {
+    let cityTile = this.groundLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
+    let city = new City(this, cityTile.pixelX + this.tileWidth / 2, cityTile.pixelY + this.tileHeight / 2, 'city').setInteractive(
+      new Phaser.Geom.Circle(16, 17, 16),
+      Phaser.Geom.Circle.Contains,
+    );
+    city.cityPlayer = playerId;
+    city.cityPosition = coordinate;
+    city.cityName = cityName;
+
+    if(this.cityManager.createCity(city)) {console.log(cityName + ' created')};
+    this.children.add(city);
+    this.components.addComponent(city, new CityUIComponent(
+      city.cityName,
+      {x: cityTile.pixelX - 2, y: cityTile.pixelY + this.tileHeight - 4}));
   }
 }
