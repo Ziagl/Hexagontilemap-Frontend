@@ -14,6 +14,7 @@ import UnitUIComponent from '../components/UnitUIComponent.ts';
 import { CityManager } from '@ziagl/tiled-map-cities';
 import { City } from '../models/City.ts';
 import CityUIComponent from '../components/CityUIComponent.ts';
+import { IPoint } from '@ziagl/tiled-map-cities/lib/main/interfaces/IPoint';
 
 export class Game extends Scene {
   private isDesktop = false;
@@ -149,7 +150,7 @@ export class Game extends Scene {
     ]);
 
     // initialize city manager
-    this.cityManager = new CityManager(map, rows, columns, this.unpassableLand);
+    this.cityManager = new CityManager(map, rows, columns, []/*this.unpassableLand*/);
 
     // initialize empty hexagon map
     const mapData = new Phaser.Tilemaps.MapData({
@@ -198,7 +199,7 @@ export class Game extends Scene {
 
     // creates a hexagonal marker based on tile size
     this.marker = this.add.graphics();
-    this.marker.depth = 100;
+    this.marker.depth = 2000;
     this.marker.lineStyle(2, 0x000000, 1);
     this.marker.beginPath();
     this.marker.moveTo(0, this.map.tileHeight / 4);
@@ -434,6 +435,10 @@ export class Game extends Scene {
 
     // create cities
     this.createCity(cityCoordinate, cityCoordinateOffset, 'Vienna', this.playerId);
+    let newCityCoordinate = {q:cityCoordinate.q + 2, r:cityCoordinate.r + 1, s:cityCoordinate.s - 3};
+    let newCityCoordinateOffset = this.pathFinder.cubeToOffset(newCityCoordinate);
+    this.createCity(newCityCoordinate, newCityCoordinateOffset, 'Salzburg', this.playerId);
+    
   }
 
   update(time: number, delta: number) {
@@ -507,10 +512,22 @@ export class Game extends Scene {
     city.cityPlayer = playerId;
     city.cityPosition = coordinate;
     city.cityName = cityName;
-
-    if(this.cityManager.createCity(city)) {console.log(cityName + ' created')};
+    if(this.cityManager.createCity(city)) {console.log(cityName + ' created')}; 
+    //compute city borders
+    let tileCenters:IPoint[] = [];
+    tileCenters.push({x: cityTile.pixelX, y: cityTile.pixelY});
+    const neighbors = this.pathFinder.neighborTiles(coordinate);
+    neighbors.forEach((neighbor) => {
+      const neighborOffset = this.pathFinder.cubeToOffset(neighbor);
+      const neighborTile = this.groundLayer.getTileAt(neighborOffset.x, neighborOffset.y);
+      if(neighborTile !== null) {
+        tileCenters.push({x: neighborTile.pixelX, y: neighborTile.pixelY});
+      }
+    });
+    this.cityManager.createCityBorders(city.cityId, tileCenters, this.tileWidth, this.tileHeight);
     this.children.add(city);
     this.components.addComponent(city, new CityUIComponent(
+      city,
       city.cityName,
       {x: cityTile.pixelX - 2, y: cityTile.pixelY + this.tileHeight - 4}));
   }

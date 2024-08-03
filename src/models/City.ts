@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
 import { CubeCoordinates } from 'honeycomb-grid';
 import { ICity } from '@ziagl/tiled-map-cities/lib/main/interfaces/ICity';
+import { ILine } from '@ziagl/tiled-map-cities/lib/main/interfaces/ILine';
 
 export class City extends Phaser.GameObjects.Image implements ICity {
   constructor(scene: Scene, x: number, y: number, texture: string) {
@@ -11,9 +12,10 @@ export class City extends Phaser.GameObjects.Image implements ICity {
   }
   
   // properties from IUnit
-    cityId: number;
-    cityPlayer: number;
-    cityName: string;
-    cityPosition: CubeCoordinates;
-    cityTiles: CubeCoordinates[];
+  cityId: number;
+  cityPlayer: number;
+  cityName: string;
+  cityPosition: CubeCoordinates;
+  cityTiles: CubeCoordinates[];
+  cityBorders: ILine[];
 }
