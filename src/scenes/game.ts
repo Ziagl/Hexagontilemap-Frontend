@@ -435,10 +435,9 @@ export class Game extends Scene {
 
     // create cities
     this.createCity(cityCoordinate, cityCoordinateOffset, 'Vienna', this.playerId);
-    let newCityCoordinate = {q:cityCoordinate.q + 2, r:cityCoordinate.r + 1, s:cityCoordinate.s - 3};
-    let newCityCoordinateOffset = this.pathFinder.cubeToOffset(newCityCoordinate);
-    this.createCity(newCityCoordinate, newCityCoordinateOffset, 'Salzburg', this.playerId);
-    
+    //let newCityCoordinate = {q:cityCoordinate.q + 2, r:cityCoordinate.r + 1, s:cityCoordinate.s - 3};
+    //let newCityCoordinateOffset = this.pathFinder.cubeToOffset(newCityCoordinate);
+    //this.createCity(newCityCoordinate, newCityCoordinateOffset, 'Salzburg', this.playerId);
   }
 
   update(time: number, delta: number) {
@@ -478,13 +477,13 @@ export class Game extends Scene {
       this.minimap.visible = !this.minimap.visible;
     }
     if (code === Phaser.Input.Keyboard.KeyCodes.SPACE) {
-      // TODO
+      this.growCity(1);
     }
   }
 
   private createUnit(coordinate: {q:number, r:number, s:number}, offsetCoordinate: {x:number, y:number}, unitType: string, playerId: number, movementPoints: number, layer: number ) {
     let tankTile = this.groundLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
-    let tank = new Unit(this, tankTile.pixelX + this.tileWidth / 2, tankTile.pixelY + this.tileHeight / 2, unitType).setInteractive(
+    const tank = new Unit(this, tankTile.pixelX + this.tileWidth / 2, tankTile.pixelY + this.tileHeight / 2, unitType).setInteractive(
       new Phaser.Geom.Circle(16, 17, 16),
       Phaser.Geom.Circle.Contains,
     );
@@ -505,30 +504,66 @@ export class Game extends Scene {
 
   private createCity(coordinate: {q:number, r:number, s:number}, offsetCoordinate: {x:number, y:number}, cityName: string, playerId: number) {
     let cityTile = this.groundLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
-    let city = new City(this, cityTile.pixelX + this.tileWidth / 2, cityTile.pixelY + this.tileHeight / 2, 'city').setInteractive(
+    const city = new City(this, cityTile.pixelX + this.tileWidth / 2, cityTile.pixelY + this.tileHeight / 2, 'city').setInteractive(
       new Phaser.Geom.Circle(16, 17, 16),
       Phaser.Geom.Circle.Contains,
     );
     city.cityPlayer = playerId;
     city.cityPosition = coordinate;
+    city.cityPositionPixel = {x: cityTile.pixelX, y: cityTile.pixelY};
     city.cityName = cityName;
+    // initialize city tiles
+    city.cityTiles = [];
+    city.cityTilesPixel = [];
+    const neighbors = this.pathFinder.neighborTiles(city.cityPosition);
+    neighbors.forEach((neighbor) => {
+      const tilePositionOffset = this.pathFinder.cubeToOffset(neighbor);
+      const tilePixel = this.groundLayer.getTileAt(tilePositionOffset.x, tilePositionOffset.y);
+      city.cityTiles.push(neighbor);
+      city.cityTilesPixel.push({x: tilePixel.pixelX, y: tilePixel.pixelY});
+    });
+    city.cityBorders = [];
     if(this.cityManager.createCity(city)) {console.log(cityName + ' created')}; 
     //compute city borders
-    let tileCenters:IPoint[] = [];
-    tileCenters.push({x: cityTile.pixelX, y: cityTile.pixelY});
-    const neighbors = this.pathFinder.neighborTiles(coordinate);
-    neighbors.forEach((neighbor) => {
-      const neighborOffset = this.pathFinder.cubeToOffset(neighbor);
-      const neighborTile = this.groundLayer.getTileAt(neighborOffset.x, neighborOffset.y);
-      if(neighborTile !== null) {
-        tileCenters.push({x: neighborTile.pixelX, y: neighborTile.pixelY});
-      }
-    });
-    this.cityManager.createCityBorders(city.cityId, tileCenters, this.tileWidth, this.tileHeight);
+    this.cityManager.createCityBorders(city.cityPlayer, this.tileWidth, this.tileHeight);
     this.children.add(city);
     this.components.addComponent(city, new CityUIComponent(
       city,
-      city.cityName,
       {x: cityTile.pixelX - 2, y: cityTile.pixelY + this.tileHeight - 4}));
+  }
+
+  private growCity(cityId: number) {
+    const city = this.cityManager.getCityById(cityId) as City;
+    if(city === undefined) {
+      return;
+    }
+    // add a random new neighbor tile
+    let tileAdded = false;
+    for(let i = 0; i < city.cityTiles.length; ++i) {
+      // find neighbor tiles
+      const neighbors = this.pathFinder.neighborTiles(city.cityTiles[i]);
+      for(let j = 0; j < neighbors.length; ++j) {
+        const tilePositionOffset = this.pathFinder.cubeToOffset(neighbors[j]);
+        console.log("tilePositionOffset: " + tilePositionOffset.x + " " + tilePositionOffset.y);
+        const tilePixel = this.groundLayer.getTileAt(tilePositionOffset.x, tilePositionOffset.y);
+        console.log("tilePixel: " + tilePixel.pixelX + " " + tilePixel.pixelY);
+        tileAdded = this.cityManager.addCityTile(city.cityId, neighbors[j], {x: tilePixel.pixelX, y: tilePixel.pixelY});
+        if(tileAdded) {
+          break;
+        }
+      }
+      if(tileAdded) {
+        break;
+      }
+    }
+    if(tileAdded) {
+      //compute city borders
+      this.cityManager.createCityBorders(city.cityPlayer, this.tileWidth, this.tileHeight);
+      // update city UI
+      const uiComponent = this.components.findComponent(city, CityUIComponent) as CityUIComponent;
+      if(uiComponent) {
+        uiComponent.updateBorders();
+      }
+    }
   }
 }
