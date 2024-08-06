@@ -69,15 +69,8 @@ export class Game extends Scene {
   private lastSelectedUnit: Unit | undefined = undefined;
   private lastClickedTile: CubeCoordinates | undefined = undefined;
 
-  private _hexSetting;
-  //private _hexDefinition;
-
   constructor() {
     super('Game');
-
-    // is needed for cube to offset conversion
-    this._hexSetting = { offset: -1 as HexOffset, orientation: Orientation.POINTY };
-    //this._hexDefinition = defineHex(this._hexSetting);
   }
 
   init() {
@@ -178,7 +171,7 @@ export class Game extends Scene {
         let tile = this.groundLayer.putTileAt(map[j + columns * i] - 1, j, i, false);
         tile.updatePixelXY(); // update pixel that vertical alignment is correct (hexSideLength needs to be set)
         // add tile to dictionary for later use
-        const tileCoords = offsetToCube(this._hexSetting, { col: j, row: i });
+        const tileCoords = this.pathFinder.offsetToCube({ x: j, y: i });
         const key: string = `q:${tileCoords.q}r:${tileCoords.r}s:${tileCoords.s}`;
         this.tileDictionary[key] = tile;
       }
@@ -237,8 +230,8 @@ export class Game extends Scene {
         // get the tile under the curser (can be null if outside map)
         const tile = this.groundLayer.getTileAtWorldXY(worldPoint.x, worldPoint.y);
         if (tile) {
-          const cubeCoords = offsetToCube(this._hexSetting, { col: tile.x, row: tile.y });
-
+          const cubeCoords = this.pathFinder.offsetToCube({ x: tile.x, y: tile.y });
+          
           // move unit
           if(this.lastClickedTile !== undefined && 
             this.lastSelectedUnitId !== undefined &&
@@ -400,7 +393,7 @@ export class Game extends Scene {
           if(map[(i*columns) + j] !== TileType.DEEP_WATER && 
              map[(i*columns) + j] !== TileType.SHALLOW_WATER &&
              map[(i*columns) + j] !== TileType.MOUNTAIN) {
-            tankCoordinate = offsetToCube(this._hexSetting, { col: j, row: i });
+            tankCoordinate = this.pathFinder.offsetToCube({ x: j, y: i });
             tankCoordinateOffset = { x: j, y: i };
             continue;
           }
@@ -408,7 +401,7 @@ export class Game extends Scene {
         if(shipCoordinate.q === 0) {
           if(map[(i*columns) + j] === TileType.DEEP_WATER ||
             map[(i*columns) +  j] === TileType.SHALLOW_WATER) {
-            shipCoordinate = offsetToCube(this._hexSetting, { col: j, row: i });
+            shipCoordinate = this.pathFinder.offsetToCube({ x: j, y: i });
             shipCoordinateOffset = { x: j, y: i };
             continue;
           }
@@ -417,7 +410,7 @@ export class Game extends Scene {
           if(map[(i*columns) + j] !== TileType.DEEP_WATER && 
              map[(i*columns) + j] !== TileType.SHALLOW_WATER &&
              map[(i*columns) + j] !== TileType.MOUNTAIN) {
-            cityCoordinate = offsetToCube(this._hexSetting, { col: j, row: i });
+            cityCoordinate = this.pathFinder.offsetToCube({ x: j, y: i });
             cityCoordinateOffset = { x: j, y: i };
             continue;
           }
@@ -435,9 +428,9 @@ export class Game extends Scene {
 
     // create cities
     this.createCity(cityCoordinate, cityCoordinateOffset, 'Vienna', this.playerId);
-    //let newCityCoordinate = {q:cityCoordinate.q + 2, r:cityCoordinate.r + 1, s:cityCoordinate.s - 3};
-    //let newCityCoordinateOffset = this.pathFinder.cubeToOffset(newCityCoordinate);
-    //this.createCity(newCityCoordinate, newCityCoordinateOffset, 'Salzburg', this.playerId);
+    let newCityCoordinate = {q:cityCoordinate.q + 2, r:cityCoordinate.r + 1, s:cityCoordinate.s - 3};
+    let newCityCoordinateOffset = this.pathFinder.cubeToOffset(newCityCoordinate);
+    this.createCity(newCityCoordinate, newCityCoordinateOffset, 'Salzburg', this.playerId);
   }
 
   update(time: number, delta: number) {
@@ -544,9 +537,7 @@ export class Game extends Scene {
       const neighbors = this.pathFinder.neighborTiles(city.cityTiles[i]);
       for(let j = 0; j < neighbors.length; ++j) {
         const tilePositionOffset = this.pathFinder.cubeToOffset(neighbors[j]);
-        console.log("tilePositionOffset: " + tilePositionOffset.x + " " + tilePositionOffset.y);
         const tilePixel = this.groundLayer.getTileAt(tilePositionOffset.x, tilePositionOffset.y);
-        console.log("tilePixel: " + tilePixel.pixelX + " " + tilePixel.pixelY);
         tileAdded = this.cityManager.addCityTile(city.cityId, neighbors[j], {x: tilePixel.pixelX, y: tilePixel.pixelY});
         if(tileAdded) {
           break;
@@ -563,6 +554,12 @@ export class Game extends Scene {
       const uiComponent = this.components.findComponent(city, CityUIComponent) as CityUIComponent;
       if(uiComponent) {
         uiComponent.updateBorders();
+      }
+      // also update other city
+      const city2 = this.cityManager.getCityById(2) as City;
+      const uiComponent2 = this.components.findComponent(city2, CityUIComponent) as CityUIComponent;
+      if(uiComponent2) {
+        uiComponent2.updateBorders();
       }
     }
   }
