@@ -4,16 +4,16 @@ enum Tilenames {
   DEEP_WATER = 'Deep water',
   SHALLOW_WATER = 'Shallow water',
   DESERT = 'Desert',
+  DESERT_HILLS = 'Desert Hills',
   PLAIN = 'Plain',
-  FOREST = 'Forest',
-  SWAMP = 'Swamp',
-  JUNGLE = 'Jungle',
-  HILLS = 'Hills',
-  MOUNTAIN = 'Mountain',
-  SNOW_PLAIN = 'Snowy Plain',
+  PLAIN_HILLS = 'Plain Hills',
+  GRASS = 'Grass',
+  GRASS_HILLS = 'Grass Hills',
+  TUNDRA = 'Tundra',
+  TUNDRA_HILLS = 'Tundra Hills',
+  SNOW = 'Snow',
   SNOW_HILLS = 'Snowy Hills',
-  SNOW_MOUNTAIN = 'Snowy Mountain',
-  SNOW_WATER = 'Ice water',
+  MOUNTAIN = 'Mountain',
 }
 
 export class GameMenu extends Scene {
@@ -89,7 +89,7 @@ export class GameMenu extends Scene {
     this.tileMenu.replace(this.tileImage, image, true);
     this.tileImage = image;
     const tileName = this.add
-      .dom(this.scale.width - 20, 50, 'div', this.style, Object.keys(Tilenames)[value - 1])
+      .dom(this.scale.width - 20, 50, 'div', this.style, Object.values(Tilenames)[value - 1])
       .setOrigin(1, 0);
     this.tileMenu.replace(this.tileName, tileName, true);
     this.tileName = tileName;

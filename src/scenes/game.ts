@@ -1,8 +1,8 @@
 import { Scene } from 'phaser';
 import { GameMenu } from './game_menu.ts';
-import { Generator, MapSize, MapType, TileType } from '@ziagl/tiled-map-generator';
+import { Generator, LandscapeType, MapSize, MapType, TerrainType } from '@ziagl/tiled-map-generator';
 import { PathFinder } from '@ziagl/tiled-map-path-finder';
-import { CubeCoordinates, HexOffset, Orientation, offsetToCube } from 'honeycomb-grid';
+import { CubeCoordinates } from 'honeycomb-grid';
 import { MovementCosts, MovementType } from '../map/MovementCosts.ts';
 import { Dictionary } from '../interfaces/IDictionary.ts';
 import { MovementRenderer } from '../map/MovementRenderer.ts';
@@ -14,7 +14,8 @@ import UnitUIComponent from '../components/UnitUIComponent.ts';
 import { CityManager } from '@ziagl/tiled-map-cities';
 import { City } from '../models/City.ts';
 import CityUIComponent from '../components/CityUIComponent.ts';
-import { IPoint } from '@ziagl/tiled-map-cities/lib/main/interfaces/IPoint';
+import { MapTemperature } from '@ziagl/tiled-map-generator/lib/main/enums/MapTemperature';
+import { MapHumidity } from '@ziagl/tiled-map-generator/lib/main/enums/MapHumidity';
 
 export class Game extends Scene {
   private isDesktop = false;
@@ -23,7 +24,8 @@ export class Game extends Scene {
   private map: Phaser.Tilemaps.Tilemap;
   private tileDictionary: Dictionary<Phaser.Tilemaps.Tile> = {};
   private marker: Phaser.GameObjects.Graphics;
-  private groundLayer: Phaser.Tilemaps.TilemapLayer;
+  private terrainLayer: Phaser.Tilemaps.TilemapLayer;
+  private landscapeLayer: Phaser.Tilemaps.TilemapLayer;
   private menu: GameMenu;
   private minimap: Phaser.Cameras.Scene2D.Camera;
 
@@ -36,22 +38,21 @@ export class Game extends Scene {
   private reachableTiles: CubeCoordinates[] = [];
   private pathTiles: CubeCoordinates[] = [];
   private readonly unpassableWater = [
-    TileType.DESERT,
-    TileType.FOREST,
-    TileType.HILLS,
-    TileType.JUNGLE,
-    TileType.MOUNTAIN,
-    TileType.PLAIN,
-    TileType.SNOW_HILLS,
-    TileType.SNOW_MOUNTAIN,
-    TileType.SNOW_PLAIN,
-    TileType.SNOW_WATER,
+    TerrainType.DESERT,
+    TerrainType.DESERT_HILLS,
+    TerrainType.PLAIN,
+    TerrainType.PLAIN_HILLS,
+    TerrainType.GRASS,
+    TerrainType.GRASS_HILLS,
+    TerrainType.TUNDRA,
+    TerrainType.TUNDRA_HILLS,
+    TerrainType.SNOW,
+    TerrainType.SNOW_HILLS,
+    TerrainType.MOUNTAIN,
   ];
   private readonly unpassableLand = [
-    TileType.DEEP_WATER,
-    TileType.SHALLOW_WATER,
-    TileType.MOUNTAIN,
-    TileType.SNOW_MOUNTAIN,
+    TerrainType.DEEP_WATER,
+    TerrainType.SHALLOW_WATER,
   ];
   private readonly unpassableAir = [];
 
@@ -111,7 +112,6 @@ export class Game extends Scene {
 
     //dynamic
     const generator = new Generator();
-    // @ts-ignore
     console.log(
       'Create new random map with type ' +
         MapType[this.gameData.mapType as keyof typeof MapType].toString() +
@@ -119,7 +119,7 @@ export class Game extends Scene {
         MapSize[this.gameData.mapSize as keyof typeof MapSize].toString(),
     );
     // @ts-ignore
-    generator.generateMap(this.gameData.mapType, this.gameData.mapSize);
+    generator.generateMap(this.gameData.mapType, this.gameData.mapSize, MapTemperature.NORMAL, MapHumidity.NORMAL);
     const [map, rows, columns] = generator.exportMap();
     console.log('map rows ' + rows + ' columns ' + columns);
     generator.print();
@@ -127,23 +127,23 @@ export class Game extends Scene {
     // initialize path finder
     this.pathFinder = new PathFinder(
       [
-        MovementCosts.generateMap(map, MovementType.WATER),
-        MovementCosts.generateMap(map, MovementType.LAND),
-        MovementCosts.generateMap(map, MovementType.AIR),
+        MovementCosts.generateMap(map[0], MovementType.WATER),
+        MovementCosts.generateMap(map[0], MovementType.LAND),
+        MovementCosts.generateMap(map[0], MovementType.AIR),
       ],
       rows,
       columns,
     );
 
     // initialize unit manager
-    this.unitManager = new UnitManager(map, Object.keys(Layers).length, rows, columns, [
+    this.unitManager = new UnitManager(map[0], Object.keys(Layers).length, rows, columns, [
       this.unpassableWater,
       this.unpassableLand,
       this.unpassableAir,
     ]);
 
     // initialize city manager
-    this.cityManager = new CityManager(map, rows, columns, []/*this.unpassableLand*/);
+    this.cityManager = new CityManager(map[0], rows, columns, []/*this.unpassableLand*/);
 
     // initialize empty hexagon map
     const mapData = new Phaser.Tilemaps.MapData({
@@ -162,18 +162,26 @@ export class Game extends Scene {
     this.map = new Phaser.Tilemaps.Tilemap(this, mapData);
     this.map.hexSideLength = mapData.hexSideLength;
     const tileset = this.map.addTilesetImage('tileset', 'tiles');
-    this.groundLayer = this.map.createBlankLayer('groundLayer', tileset!, 0, 0, columns, rows, this.tileWidth, this.tileHeight)!;
-    this.groundLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
+    this.terrainLayer = this.map.createBlankLayer('TerrainLayer', tileset!, 0, 0, columns, rows, this.tileWidth, this.tileHeight)!;
+    this.terrainLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
+    this.landscapeLayer = this.map.createBlankLayer('LandscapeLayer', tileset!, 0, 0, columns, rows, this.tileWidth, this.tileHeight)!;
+    this.landscapeLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
 
     // convert 1D -> 2D
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < columns; j++) {
-        let tile = this.groundLayer.putTileAt(map[j + columns * i] - 1, j, i, false);
+        // terrain layer
+        let tile = this.terrainLayer.putTileAt(map[0][j + columns * i] - 1, j, i, false);
         tile.updatePixelXY(); // update pixel that vertical alignment is correct (hexSideLength needs to be set)
         // add tile to dictionary for later use
         const tileCoords = this.pathFinder.offsetToCube({ x: j, y: i });
         const key: string = `q:${tileCoords.q}r:${tileCoords.r}s:${tileCoords.s}`;
         this.tileDictionary[key] = tile;
+        if(map[1][j + columns * i] !== LandscapeType.NONE) {
+          // landscape layer
+          let landscapeTile = this.landscapeLayer.putTileAt(map[1][j + columns * i] - 1, j, i, false);
+          landscapeTile.updatePixelXY();
+        }
       }
     }
 
@@ -228,7 +236,7 @@ export class Game extends Scene {
         let createdPath = false;
 
         // get the tile under the curser (can be null if outside map)
-        const tile = this.groundLayer.getTileAtWorldXY(worldPoint.x, worldPoint.y);
+        const tile = this.terrainLayer.getTileAtWorldXY(worldPoint.x, worldPoint.y);
         if (tile) {
           const cubeCoords = this.pathFinder.offsetToCube({ x: tile.x, y: tile.y });
           
@@ -271,7 +279,8 @@ export class Game extends Scene {
 
           if (units.length === 0) {
             if (this.menu) {
-              this.menu.setMenuVisible(true);
+              // temorarily disabled
+              //this.menu.setMenuVisible(true);
               this.menu.setTileImage(tile.index + 1);
               this.menu.setTileInformation(
                 'OffsetCoords: ' +
@@ -390,26 +399,26 @@ export class Game extends Scene {
     for(let i = 5; i < 15; ++i) {
       for(let j = 5; j < 15; ++j) {
         if(tankCoordinate.q === 0) {
-          if(map[(i*columns) + j] !== TileType.DEEP_WATER && 
-             map[(i*columns) + j] !== TileType.SHALLOW_WATER &&
-             map[(i*columns) + j] !== TileType.MOUNTAIN) {
+          if(map[0][(i*columns) + j] !== TerrainType.DEEP_WATER && 
+             map[0][(i*columns) + j] !== TerrainType.SHALLOW_WATER &&
+             map[0][(i*columns) + j] !== TerrainType.MOUNTAIN) {
             tankCoordinate = this.pathFinder.offsetToCube({ x: j, y: i });
             tankCoordinateOffset = { x: j, y: i };
             continue;
           }
         }
         if(shipCoordinate.q === 0) {
-          if(map[(i*columns) + j] === TileType.DEEP_WATER ||
-            map[(i*columns) +  j] === TileType.SHALLOW_WATER) {
+          if(map[0][(i*columns) + j] === TerrainType.DEEP_WATER ||
+            map[0][(i*columns) +  j] === TerrainType.SHALLOW_WATER) {
             shipCoordinate = this.pathFinder.offsetToCube({ x: j, y: i });
             shipCoordinateOffset = { x: j, y: i };
             continue;
           }
         }
         if(cityCoordinate.q === 0) {
-          if(map[(i*columns) + j] !== TileType.DEEP_WATER && 
-             map[(i*columns) + j] !== TileType.SHALLOW_WATER &&
-             map[(i*columns) + j] !== TileType.MOUNTAIN) {
+          if(map[0][(i*columns) + j] !== TerrainType.DEEP_WATER && 
+             map[0][(i*columns) + j] !== TerrainType.SHALLOW_WATER &&
+             map[0][(i*columns) + j] !== TerrainType.MOUNTAIN) {
             cityCoordinate = this.pathFinder.offsetToCube({ x: j, y: i });
             cityCoordinateOffset = { x: j, y: i };
             continue;
@@ -428,7 +437,7 @@ export class Game extends Scene {
 
     // create cities
     this.createCity(cityCoordinate, cityCoordinateOffset, 'Vienna', this.playerId);
-    let newCityCoordinate = {q:cityCoordinate.q + 2, r:cityCoordinate.r + 1, s:cityCoordinate.s - 3};
+    let newCityCoordinate = {q:cityCoordinate.q + 3, r:cityCoordinate.r + 1, s:cityCoordinate.s - 3};
     let newCityCoordinateOffset = this.pathFinder.cubeToOffset(newCityCoordinate);
     this.createCity(newCityCoordinate, newCityCoordinateOffset, 'Salzburg', this.playerId);
   }
@@ -440,7 +449,7 @@ export class Game extends Scene {
     const worldPoint = this.input.activePointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
 
     // get the tile under the curser (can be null if outside map)
-    const tile = this.groundLayer.getTileAtWorldXY(worldPoint.x, worldPoint.y);
+    const tile = this.terrainLayer.getTileAtWorldXY(worldPoint.x, worldPoint.y);
     // update marker position and visibility
     if (tile) {
       this.marker.x = tile.pixelX;
@@ -475,7 +484,7 @@ export class Game extends Scene {
   }
 
   private createUnit(coordinate: {q:number, r:number, s:number}, offsetCoordinate: {x:number, y:number}, unitType: string, playerId: number, movementPoints: number, layer: number ) {
-    let tankTile = this.groundLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
+    let tankTile = this.terrainLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
     const tank = new Unit(this, tankTile.pixelX + this.tileWidth / 2, tankTile.pixelY + this.tileHeight / 2, unitType).setInteractive(
       new Phaser.Geom.Circle(16, 17, 16),
       Phaser.Geom.Circle.Contains,
@@ -496,7 +505,7 @@ export class Game extends Scene {
   }
 
   private createCity(coordinate: {q:number, r:number, s:number}, offsetCoordinate: {x:number, y:number}, cityName: string, playerId: number) {
-    let cityTile = this.groundLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
+    let cityTile = this.terrainLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
     const city = new City(this, cityTile.pixelX + this.tileWidth / 2, cityTile.pixelY + this.tileHeight / 2, 'city').setInteractive(
       new Phaser.Geom.Circle(16, 17, 16),
       Phaser.Geom.Circle.Contains,
@@ -511,7 +520,7 @@ export class Game extends Scene {
     const neighbors = this.pathFinder.neighborTiles(city.cityPosition);
     neighbors.forEach((neighbor) => {
       const tilePositionOffset = this.pathFinder.cubeToOffset(neighbor);
-      const tilePixel = this.groundLayer.getTileAt(tilePositionOffset.x, tilePositionOffset.y);
+      const tilePixel = this.terrainLayer.getTileAt(tilePositionOffset.x, tilePositionOffset.y);
       city.cityTiles.push(neighbor);
       city.cityTilesPixel.push({x: tilePixel.pixelX, y: tilePixel.pixelY});
     });
@@ -537,7 +546,7 @@ export class Game extends Scene {
       const neighbors = this.pathFinder.neighborTiles(city.cityTiles[i]);
       for(let j = 0; j < neighbors.length; ++j) {
         const tilePositionOffset = this.pathFinder.cubeToOffset(neighbors[j]);
-        const tilePixel = this.groundLayer.getTileAt(tilePositionOffset.x, tilePositionOffset.y);
+        const tilePixel = this.terrainLayer.getTileAt(tilePositionOffset.x, tilePositionOffset.y);
         tileAdded = this.cityManager.addCityTile(city.cityId, neighbors[j], {x: tilePixel.pixelX, y: tilePixel.pixelY});
         if(tileAdded) {
           break;

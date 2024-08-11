@@ -1,4 +1,4 @@
-import { CubeCoordinates, move } from 'honeycomb-grid';
+import { CubeCoordinates } from 'honeycomb-grid';
 import { Dictionary } from '../interfaces/IDictionary';
 import { Scene } from 'phaser';
 

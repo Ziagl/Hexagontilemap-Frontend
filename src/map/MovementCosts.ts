@@ -1,6 +1,6 @@
 // this class handles movement costs
 
-import { TileType } from '@ziagl/tiled-map-generator';
+import { TerrainType } from '@ziagl/tiled-map-generator';
 
 export enum MovementType {
   LAND,
@@ -19,47 +19,47 @@ export class MovementCosts {
     return movementCosts;
   }
 
-  private static getCosts(tile: TileType, type: MovementType): number {
+  private static getCosts(tile: TerrainType, type: MovementType): number {
     switch (type) {
       case MovementType.LAND:
         switch (tile) {
           // unpassable
-          case TileType.DEEP_WATER:
-          case TileType.SHALLOW_WATER:
-          case TileType.MOUNTAIN:
-          case TileType.SNOW_MOUNTAIN:
-          case TileType.SNOW_WATER:
+          case TerrainType.DEEP_WATER:
+          case TerrainType.SHALLOW_WATER:
+          case TerrainType.MOUNTAIN:
             return 0;
-          case TileType.DESERT:
-          case TileType.PLAIN:
-          case TileType.SNOW_PLAIN:
+          case TerrainType.DESERT:
+          case TerrainType.PLAIN:
+          case TerrainType.GRASS:
+          case TerrainType.TUNDRA:
+          case TerrainType.SNOW:
             return 1;
-          case TileType.FOREST:
-          case TileType.SWAMP:
-          case TileType.JUNGLE:
-          case TileType.HILLS:
-          case TileType.SNOW_HILLS:
+          case TerrainType.DESERT_HILLS:
+          case TerrainType.PLAIN_HILLS:
+          case TerrainType.GRASS_HILLS:
+          case TerrainType.TUNDRA_HILLS:
+          case TerrainType.SNOW_HILLS:
             return 2;
         }
         break;
       case MovementType.WATER:
         switch (tile) {
           // unpassable
-          case TileType.MOUNTAIN:
-          case TileType.SNOW_MOUNTAIN:
-          case TileType.SNOW_WATER:
-          case TileType.DESERT:
-          case TileType.PLAIN:
-          case TileType.SNOW_PLAIN:
-          case TileType.FOREST:
-          case TileType.SWAMP:
-          case TileType.JUNGLE:
-          case TileType.HILLS:
-          case TileType.SNOW_HILLS:
+          case TerrainType.DESERT:
+          case TerrainType.DESERT_HILLS:
+          case TerrainType.PLAIN:
+          case TerrainType.PLAIN_HILLS:
+          case TerrainType.GRASS:
+          case TerrainType.GRASS_HILLS:
+          case TerrainType.TUNDRA:
+          case TerrainType.TUNDRA_HILLS:
+          case TerrainType.SNOW:
+          case TerrainType.SNOW_HILLS:
+          case TerrainType.MOUNTAIN:
             return 0;
           // passable
-          case TileType.DEEP_WATER:
-          case TileType.SHALLOW_WATER:
+          case TerrainType.DEEP_WATER:
+          case TerrainType.SHALLOW_WATER:
             return 1;
         }
       case MovementType.AIR:
