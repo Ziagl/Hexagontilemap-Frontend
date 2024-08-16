@@ -1,6 +1,7 @@
 import { CubeCoordinates } from 'honeycomb-grid';
 import { Dictionary } from '../interfaces/IDictionary';
 import { Scene } from 'phaser';
+import { Utils } from '@ziagl/tiled-map-utils';
 
 export class MovementRenderer {
   private readonly colorStartMarker = 0x800010;
@@ -24,7 +25,7 @@ export class MovementRenderer {
     // creates a hexagonal movement marker based on tile size
     tileCoordinates.forEach((coordinates) => {
       // find tile by cube coordinates
-      const key: string = 'q:' + coordinates.q + 'r:' + coordinates.r + 's:' + coordinates.s;
+      const key: string = Utils.coordinateToKey(coordinates);
       if (Object.keys(this.tiles).includes(key)) {
         //console.log("found tile at "+key);
         const tile = this.tiles[key];

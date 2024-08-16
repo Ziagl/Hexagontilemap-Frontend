@@ -16,6 +16,10 @@ import { City } from '../models/City.ts';
 import CityUIComponent from '../components/CityUIComponent.ts';
 import { MapTemperature } from '@ziagl/tiled-map-generator/lib/main/enums/MapTemperature';
 import { MapHumidity } from '@ziagl/tiled-map-generator/lib/main/enums/MapHumidity';
+import { IPoint } from '@ziagl/tiled-map-cities/lib/main/interfaces/IPoint';
+import { ResourceManager } from '@ziagl/tiled-map-resources';
+import { ResourceGenerator } from '../map/ResourceGenerator.ts';
+import { Utils } from '@ziagl/tiled-map-utils';
 
 export class Game extends Scene {
   private isDesktop = false;
@@ -61,6 +65,9 @@ export class Game extends Scene {
 
   // city management
   private cityManager: CityManager;
+
+  // resource management
+  private resourceManager: ResourceManager;
 
   // game
   private readonly tileWidth = 32;
@@ -145,6 +152,16 @@ export class Game extends Scene {
     // initialize city manager
     this.cityManager = new CityManager(map[0], rows, columns, []/*this.unpassableLand*/);
 
+    // initialize resource manager with map resources
+    this.resourceManager = new ResourceManager();
+    const resmap = ResourceGenerator.generateMap(map[0], map[1], rows, columns);
+    for (let i = 0; i < rows; i++) {
+      for (let j = 0; j < columns; j++) {
+        const coordinates = this.pathFinder.offsetToCube({ x: j, y: i });
+        this.resourceManager.addResourceTile(coordinates, resmap[j + columns * i]);
+      }
+    }
+
     // initialize empty hexagon map
     const mapData = new Phaser.Tilemaps.MapData({
       width: columns,
@@ -175,7 +192,7 @@ export class Game extends Scene {
         tile.updatePixelXY(); // update pixel that vertical alignment is correct (hexSideLength needs to be set)
         // add tile to dictionary for later use
         const tileCoords = this.pathFinder.offsetToCube({ x: j, y: i });
-        const key: string = `q:${tileCoords.q}r:${tileCoords.r}s:${tileCoords.s}`;
+        const key = Utils.coordinateToKey(tileCoords);
         this.tileDictionary[key] = tile;
         if(map[1][j + columns * i] !== LandscapeType.NONE) {
           // landscape layer
