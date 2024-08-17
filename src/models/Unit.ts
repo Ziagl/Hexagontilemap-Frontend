@@ -24,5 +24,4 @@ export class Unit extends Phaser.GameObjects.Image implements IUnit {
   unitDefense: number;
   unitRange: number;
   canAttack: boolean;
-  canMove: boolean;
 }

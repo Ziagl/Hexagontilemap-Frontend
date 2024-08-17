@@ -16,8 +16,7 @@ import { City } from '../models/City.ts';
 import CityUIComponent from '../components/CityUIComponent.ts';
 import { MapTemperature } from '@ziagl/tiled-map-generator/lib/main/enums/MapTemperature';
 import { MapHumidity } from '@ziagl/tiled-map-generator/lib/main/enums/MapHumidity';
-import { IPoint } from '@ziagl/tiled-map-cities/lib/main/interfaces/IPoint';
-import { ResourceManager } from '@ziagl/tiled-map-resources';
+import { ResourceManager, ResourceType } from '@ziagl/tiled-map-resources';
 import { ResourceGenerator } from '../map/ResourceGenerator.ts';
 import { Utils } from '@ziagl/tiled-map-utils';
 
@@ -296,8 +295,26 @@ export class Game extends Scene {
 
           if (units.length === 0) {
             if (this.menu) {
+              const resources = this.resourceManager.getResources(cubeCoords);
+              let resourceString: string = "";
+              if(resources != undefined) {
+                resources.forEach(resource => {
+                  switch(resource.type){
+                    case ResourceType.FOOD: 
+                      resourceString = resourceString + " food: " + resource.amount;
+                      break;
+                    case ResourceType.GOLD: 
+                      resourceString = resourceString + " gold: " + resource.amount;
+                      break;
+                    case ResourceType.PRODUCTION: 
+                      resourceString = resourceString + " prod: " + resource.amount;
+                      break;
+                  }
+                });
+              }
               // temorarily disabled
-              //this.menu.setMenuVisible(true);
+              // TODO
+              this.menu.setMenuVisible(true);
               this.menu.setTileImage(tile.index + 1);
               this.menu.setTileInformation(
                 'OffsetCoords: ' +
@@ -311,7 +328,9 @@ export class Game extends Scene {
                   ',' +
                   cubeCoords.s +
                   ' , Index: ' +
-                  tile.index,
+                  tile.index +
+                  ' Resources: ' +
+                  resourceString,
               );
             }
           } else {
