@@ -7,7 +7,7 @@ import { MovementCosts, MovementType } from '../map/MovementCosts.ts';
 import { Dictionary } from '../interfaces/IDictionary.ts';
 import { MovementRenderer } from '../map/MovementRenderer.ts';
 import { Unit } from '../models/Unit.ts';
-import { UnitManager } from '@ziagl/tiled-map-units';
+import { IUnit, UnitManager } from '@ziagl/tiled-map-units';
 import { Layers } from '../enums/Layers.ts';
 import ComponentService from '../services/ComponentService.ts';
 import UnitUIComponent from '../components/UnitUIComponent.ts';
@@ -106,7 +106,8 @@ export class Game extends Scene {
     this.load.image('bar-horizontal-green', 'assets/ui/bar-horizontal-green.png');
     this.load.image('bar-horizontal-orange', 'assets/ui/bar-horizontal-orange.png');
     this.load.image('bar-horizontal-background', 'assets/ui/bar-horizontal-background.png');
-    
+    //config
+    this.load.json('unitsConfig', 'config/units.json');
   }
 
   create() {
@@ -142,11 +143,13 @@ export class Game extends Scene {
     );
 
     // initialize unit manager
+    const config = this.cache.json.get('unitsConfig') as IUnit[];
     this.unitManager = new UnitManager(map[0], Object.keys(Layers).length, rows, columns, [
       this.unpassableWater,
       this.unpassableLand,
       this.unpassableAir,
-    ]);
+    ],
+    config);
 
     // initialize city manager
     this.cityManager = new CityManager(map[0], rows, columns, []/*this.unpassableLand*/);
@@ -267,7 +270,7 @@ export class Game extends Scene {
               const success = this.unitManager.moveUnitByPath(this.lastSelectedUnitId, this.pathTiles);
               if (success) {
                 // update position of display
-                let unit = this.unitManager.getUnitById(this.lastSelectedUnitId) as Unit;
+                let unit = this.unitManager.getUnitById(this.lastSelectedUnitId) as unknown as Unit;
                 unit.x = tile.pixelX + this.tileWidth / 2;
                 unit.y = tile.pixelY + this.tileHeight / 2;
                 this.lastSelectedUnitId = undefined;
@@ -290,7 +293,7 @@ export class Game extends Scene {
           // TODO
           if(units.length > 0) {
             this.lastSelectedUnitId = units[0].unitId ?? undefined;
-            this.lastSelectedUnit = units[0] as Unit;
+            this.lastSelectedUnit = units[0] as unknown as Unit;
           }
 
           if (units.length === 0) {
@@ -521,20 +524,21 @@ export class Game extends Scene {
 
   private createUnit(coordinate: {q:number, r:number, s:number}, offsetCoordinate: {x:number, y:number}, unitType: string, playerId: number, movementPoints: number, layer: number ) {
     let tankTile = this.terrainLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
-    const tank = new Unit(this, tankTile.pixelX + this.tileWidth / 2, tankTile.pixelY + this.tileHeight / 2, unitType).setInteractive(
+    const unit = new Unit(this, tankTile.pixelX + this.tileWidth / 2, tankTile.pixelY + this.tileHeight / 2, unitType).setInteractive(
       new Phaser.Geom.Circle(16, 17, 16),
       Phaser.Geom.Circle.Contains,
     );
-    tank.unitLayer = layer;
-    tank.unitPosition = coordinate;
-    tank.unitPlayer = playerId;
-    tank.unitMaxHealth = 100;
-    tank.unitHealth = tank.unitMaxHealth;
-    tank.unitMaxMovement = movementPoints;
-    tank.unitMovement = tank.unitMaxMovement;
-    if(this.unitManager.createUnit(tank)) {console.log(unitType + ' created')};
-    this.children.add(tank);
-    this.components.addComponent(tank, new UnitUIComponent(
+    unit.unitType = 3; 
+    unit.unitLayer = layer;
+    unit.unitPosition = coordinate;
+    unit.unitPlayer = playerId;
+    unit.unitMaxHealth = 100;
+    unit.unitHealth = unit.unitMaxHealth;
+    unit.unitMaxMovement = movementPoints;
+    unit.unitMovement = unit.unitMaxMovement;
+    if(this.unitManager.createUnit(unit)) {console.log(`${unitType} created (${unit.unitProductionCost}, ${unit.unitPurchaseCost})`)};
+    this.children.add(unit);
+    this.components.addComponent(unit, new UnitUIComponent(
       this.add.image(0, 0, 'bar-horizontal-green'),
       this.add.image(0, 0, 'bar-horizontal-orange'),
       this.add.image(0, 0, 'bar-horizontal-background')));

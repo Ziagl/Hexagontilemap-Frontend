@@ -1,0 +1,32 @@
+[
+  {
+    "unitType": 1,
+    "unitMaxMovement": 2,
+    "unitAttack": 0,
+    "unitDefense": 0,
+    "unitRange": 0,
+    "unitCanAttack": 0,
+    "unitProductionCost": 80,
+    "unitPurchaseCost": 320
+  },
+  {
+    "unitType": 2,
+    "unitMaxMovement": 2,
+    "unitAttack": 0,
+    "unitDefense": 0,
+    "unitRange": 0,
+    "unitCanAttack": 0,
+    "unitProductionCost": 50,
+    "unitPurchaseCost": 200
+  },
+  {
+    "unitType": 3,
+    "unitMaxMovement": 2,
+    "unitAttack": 20,
+    "unitDefense": 0,
+    "unitRange": 1,
+    "unitCanAttack": 1,
+    "unitProductionCost": 40,
+    "unitPurchaseCost": 160
+  }
+]

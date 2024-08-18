@@ -30,7 +30,7 @@
         "@ziagl/tiled-map-generator": "^1.1.0",
         "@ziagl/tiled-map-path-finder": "^1.0.3",
         "@ziagl/tiled-map-resources": "^0.0.3",
-        "@ziagl/tiled-map-units": "^0.1.5",
+        "@ziagl/tiled-map-units": "^0.1.6",
         "@ziagl/tiled-map-utils": "^0.0.4",
         "honeycomb-grid": "^4.1.5",
         "phaser": "^3.80.1",
