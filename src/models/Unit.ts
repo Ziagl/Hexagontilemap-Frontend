@@ -1,5 +1,5 @@
 import { Scene } from 'phaser';
-import { IUnit } from '@ziagl/tiled-map-units';
+import { IUnit, UnitType } from '@ziagl/tiled-map-units';
 import { CubeCoordinates } from 'honeycomb-grid';
 
 export class Unit extends Phaser.GameObjects.Image implements IUnit {
@@ -15,7 +15,7 @@ export class Unit extends Phaser.GameObjects.Image implements IUnit {
   unitPosition: CubeCoordinates;
   unitLayer: number;
   unitPlayer: number;
-  unitType: number;
+  unitType: UnitType;
   unitHealth: number;
   unitMaxHealth: number;
   unitMovement: number;

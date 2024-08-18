@@ -7,7 +7,7 @@ import { MovementCosts, MovementType } from '../map/MovementCosts.ts';
 import { Dictionary } from '../interfaces/IDictionary.ts';
 import { MovementRenderer } from '../map/MovementRenderer.ts';
 import { Unit } from '../models/Unit.ts';
-import { IUnit, UnitManager } from '@ziagl/tiled-map-units';
+import { IUnit, UnitManager, UnitType } from '@ziagl/tiled-map-units';
 import { Layers } from '../enums/Layers.ts';
 import ComponentService from '../services/ComponentService.ts';
 import UnitUIComponent from '../components/UnitUIComponent.ts';
@@ -100,6 +100,7 @@ export class Game extends Scene {
     this.load.image('plane', 'assets/units/plane/plane_E.png');
     this.load.image('tank', 'assets/units/tank/tank_E.png');
     this.load.image('ship', 'assets/units/ship/ship_E.png');
+    this.load.image('settler', 'assets/units/settler/settler_E.png');
     // cities
     this.load.image('city', 'assets/cities/city.png');
     // UI
@@ -430,13 +431,24 @@ export class Game extends Scene {
     // units
     let tankCoordinate = {q:0, r:0, s:0};
     let tankCoordinateOffset = {x:0, y:0};
+    let settlerCoordinate = {q:0, r:0, s:0};
+    let settlerCoordinateOffset = {x:0, y:0};
     let shipCoordinate = {q:0, r:0, s:0};
     let shipCoordinateOffset = {x:0, y:0};
     let planeCoordinate = { q: 0, r: 5, s: -5 };
     let cityCoordinate = {q:0, r:0, s:0};
     let cityCoordinateOffset = {x:0, y:0};
-    for(let i = 5; i < 15; ++i) {
-      for(let j = 5; j < 15; ++j) {
+    for(let i = 5; i < 20; ++i) {
+      for(let j = 5; j < 20; ++j) {
+        if(settlerCoordinate.q === 0) {
+          if(map[0][(i*columns) + j] !== TerrainType.DEEP_WATER && 
+             map[0][(i*columns) + j] !== TerrainType.SHALLOW_WATER &&
+             map[0][(i*columns) + j] !== TerrainType.MOUNTAIN) {
+            settlerCoordinate = this.pathFinder.offsetToCube({ x: j, y: i });
+            settlerCoordinateOffset = { x: j, y: i };
+            continue;
+          }
+        }
         if(tankCoordinate.q === 0) {
           if(map[0][(i*columns) + j] !== TerrainType.DEEP_WATER && 
              map[0][(i*columns) + j] !== TerrainType.SHALLOW_WATER &&
@@ -470,9 +482,10 @@ export class Game extends Scene {
     }
 
     // create example units
-    this.createUnit(tankCoordinate, tankCoordinateOffset, 'tank', this.playerId, 3, Layers.LAND);
-    this.createUnit(shipCoordinate, shipCoordinateOffset, 'ship',  this.playerId, 5, Layers.SEA);
-    this.createUnit(planeCoordinate, {x:2, y:5}, 'plane',  this.playerId, 8, Layers.AIR);
+    this.createUnit(tankCoordinate, tankCoordinateOffset, 'tank', this.playerId, 3, UnitType.SETTLER, Layers.LAND);
+    this.createUnit(settlerCoordinate, settlerCoordinateOffset, 'settler', this.playerId, 5, UnitType.WARRIOR, Layers.LAND);
+    this.createUnit(shipCoordinate, shipCoordinateOffset, 'ship',  this.playerId, 5, UnitType.WARRIOR, Layers.SEA);
+    this.createUnit(planeCoordinate, {x:2, y:5}, 'plane',  this.playerId, 8, UnitType.WARRIOR, Layers.AIR);
 
     // create cities
     this.createCity(cityCoordinate, cityCoordinateOffset, 'Vienna', this.playerId);
@@ -522,13 +535,13 @@ export class Game extends Scene {
     }
   }
 
-  private createUnit(coordinate: {q:number, r:number, s:number}, offsetCoordinate: {x:number, y:number}, unitType: string, playerId: number, movementPoints: number, layer: number ) {
+  private createUnit(coordinate: {q:number, r:number, s:number}, offsetCoordinate: {x:number, y:number}, unitName: string, playerId: number, movementPoints: number, unitType: UnitType, layer: number ) {
     let tankTile = this.terrainLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
-    const unit = new Unit(this, tankTile.pixelX + this.tileWidth / 2, tankTile.pixelY + this.tileHeight / 2, unitType).setInteractive(
+    const unit = new Unit(this, tankTile.pixelX + this.tileWidth / 2, tankTile.pixelY + this.tileHeight / 2, unitName).setInteractive(
       new Phaser.Geom.Circle(16, 17, 16),
       Phaser.Geom.Circle.Contains,
     );
-    unit.unitType = 3; 
+    unit.unitType = unitType;
     unit.unitLayer = layer;
     unit.unitPosition = coordinate;
     unit.unitPlayer = playerId;
