@@ -482,8 +482,8 @@ export class Game extends Scene {
     }
 
     // create example units
-    this.createUnit(tankCoordinate, tankCoordinateOffset, 'tank', this.playerId, 3, UnitType.SETTLER, Layers.LAND);
-    this.createUnit(settlerCoordinate, settlerCoordinateOffset, 'settler', this.playerId, 5, UnitType.WARRIOR, Layers.LAND);
+    this.createUnit(tankCoordinate, tankCoordinateOffset, 'tank', this.playerId, 3, UnitType.WARRIOR, Layers.LAND);
+    this.createUnit(settlerCoordinate, settlerCoordinateOffset, 'settler', this.playerId, 5, UnitType.SETTLER, Layers.LAND);
     this.createUnit(shipCoordinate, shipCoordinateOffset, 'ship',  this.playerId, 5, UnitType.WARRIOR, Layers.SEA);
     this.createUnit(planeCoordinate, {x:2, y:5}, 'plane',  this.playerId, 8, UnitType.WARRIOR, Layers.AIR);
 
@@ -531,7 +531,10 @@ export class Game extends Scene {
       this.minimap.visible = !this.minimap.visible;
     }
     if (code === Phaser.Input.Keyboard.KeyCodes.SPACE) {
-      this.growCity(1);
+      this.growCity(1); // growCity with 1 (first city);
+    }
+    if (code === Phaser.Input.Keyboard.KeyCodes.C) {
+      this.settlerToCity(2); // createcity with 2 (unitId of settler)
     }
   }
 
@@ -610,19 +613,43 @@ export class Game extends Scene {
       }
     }
     if(tileAdded) {
-      //compute city borders
-      this.cityManager.createCityBorders(city.cityPlayer, this.tileWidth, this.tileHeight);
-      // update city UI
+      this.updateCityBorders();
+    }
+  }
+
+  private updateCityBorders() {
+    const cities = this.cityManager.getCitiesOfPlayer(this.playerId) as City[];
+    //compute city borders
+    this.cityManager.createCityBorders(this.playerId, this.tileWidth, this.tileHeight);
+    // update city UI for each city
+    cities.forEach(city => {
       const uiComponent = this.components.findComponent(city, CityUIComponent) as CityUIComponent;
       if(uiComponent) {
         uiComponent.updateBorders();
       }
-      // also update other city
-      const city2 = this.cityManager.getCityById(2) as City;
-      const uiComponent2 = this.components.findComponent(city2, CityUIComponent) as CityUIComponent;
-      if(uiComponent2) {
-        uiComponent2.updateBorders();
-      }
+    });
+  }
+
+  private settlerToCity(unitId: number) {
+    const settler = this.unitManager.getUnitById(unitId) as Unit;
+    if(settler === undefined) {
+      console.log('Unit not found');
+      return;
     }
+    if(settler.unitType !== UnitType.SETTLER) {
+      console.log('Unit is not a settler');
+      return;
+    }
+    const settlerCoordinate = settler.unitPosition;
+    const settlerOffsetCoordinate = this.pathFinder.cubeToOffset(settlerCoordinate);
+    // remove settler unit
+    this.unitManager.removeUnit(settler.unitId);
+    // remove settler UI
+    this.components.destroyComponent(settler, UnitUIComponent);
+    // remove settler game object
+    settler.destroy();
+    // create city
+    this.createCity(settlerCoordinate, settlerOffsetCoordinate, 'Graz', this.playerId);
+    this.updateCityBorders();
   }
 }

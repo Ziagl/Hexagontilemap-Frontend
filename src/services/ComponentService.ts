@@ -41,6 +41,15 @@ export default class ComponentService {
         return components.find(component => component instanceof componentType);
     }
 
+    destroyComponent<ComponentType>(go: Phaser.GameObjects.GameObject, componentType: Constructor<ComponentType>) {
+        const component = this.findComponent(go, componentType);
+        if (component && component.destroy) {
+            component.destroy();
+        } else {
+            console.warn(`Component ${componentType.name} not found on GameObject ${go.name}`);
+        }
+    }
+
     destroy() {
         // destroy each component
         const entires = this.componentsByGameObject.entries();

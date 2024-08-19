@@ -86,6 +86,21 @@ export default class HealthBar {
         });
     }
 
+    destroy() {
+        if(this.leftCap) {
+            this.leftCap.destroy();
+        }
+        if(this.middle) {
+            this.middle.destroy();
+        }
+        if(this.rightCap) {
+            this.rightCap.destroy();
+        }
+        if(this.background) {
+            this.background.destroy();
+        }
+    }
+
     private layoutSegments() {
         if(!this.middle) {
             return this;

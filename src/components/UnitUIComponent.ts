@@ -63,4 +63,9 @@ export  default class UnitUIComponent implements IComponent {
     update(dt: number):void {
         // real time updates
     }
+
+    destroy() {
+        this.healthBar.destroy();
+        this.movementBar.destroy();
+    }
 }
