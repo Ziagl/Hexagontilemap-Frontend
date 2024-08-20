@@ -11,7 +11,7 @@ export class City extends Phaser.GameObjects.Image implements ICity {
     this.depth = 800;
     // TODO
   }
-  
+
   // properties from IUnit
   cityId: number;
   cityPlayer: number;

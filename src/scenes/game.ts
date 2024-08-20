@@ -53,10 +53,7 @@ export class Game extends Scene {
     TerrainType.SNOW_HILLS,
     TerrainType.MOUNTAIN,
   ];
-  private readonly unpassableLand = [
-    TerrainType.DEEP_WATER,
-    TerrainType.SHALLOW_WATER,
-  ];
+  private readonly unpassableLand = [TerrainType.DEEP_WATER, TerrainType.SHALLOW_WATER];
   private readonly unpassableAir = [];
 
   // unit management
@@ -89,7 +86,7 @@ export class Game extends Scene {
     this.events.on(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.components.destroy();
     });
-    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.lateUpdate, this);  // draw components at last
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.lateUpdate, this); // draw components at last
   }
 
   preload() {
@@ -145,15 +142,17 @@ export class Game extends Scene {
 
     // initialize unit manager
     const config = this.cache.json.get('unitsConfig') as IUnit[];
-    this.unitManager = new UnitManager(map[0], Object.keys(Layers).length, rows, columns, [
-      this.unpassableWater,
-      this.unpassableLand,
-      this.unpassableAir,
-    ],
-    config);
+    this.unitManager = new UnitManager(
+      map[0],
+      Object.keys(Layers).length,
+      rows,
+      columns,
+      [this.unpassableWater, this.unpassableLand, this.unpassableAir],
+      config,
+    );
 
     // initialize city manager
-    this.cityManager = new CityManager(map[0], rows, columns, []/*this.unpassableLand*/);
+    this.cityManager = new CityManager(map[0], rows, columns, [] /*this.unpassableLand*/);
 
     // initialize resource manager with map resources
     this.resourceManager = new ResourceManager();
@@ -182,9 +181,27 @@ export class Game extends Scene {
     this.map = new Phaser.Tilemaps.Tilemap(this, mapData);
     this.map.hexSideLength = mapData.hexSideLength;
     const tileset = this.map.addTilesetImage('tileset', 'tiles');
-    this.terrainLayer = this.map.createBlankLayer('TerrainLayer', tileset!, 0, 0, columns, rows, this.tileWidth, this.tileHeight)!;
+    this.terrainLayer = this.map.createBlankLayer(
+      'TerrainLayer',
+      tileset!,
+      0,
+      0,
+      columns,
+      rows,
+      this.tileWidth,
+      this.tileHeight,
+    )!;
     this.terrainLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
-    this.landscapeLayer = this.map.createBlankLayer('LandscapeLayer', tileset!, 0, 0, columns, rows, this.tileWidth, this.tileHeight)!;
+    this.landscapeLayer = this.map.createBlankLayer(
+      'LandscapeLayer',
+      tileset!,
+      0,
+      0,
+      columns,
+      rows,
+      this.tileWidth,
+      this.tileHeight,
+    )!;
     this.landscapeLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
 
     // convert 1D -> 2D
@@ -197,7 +214,7 @@ export class Game extends Scene {
         const tileCoords = this.pathFinder.offsetToCube({ x: j, y: i });
         const key = Utils.coordinateToKey(tileCoords);
         this.tileDictionary[key] = tile;
-        if(map[1][j + columns * i] !== LandscapeType.NONE) {
+        if (map[1][j + columns * i] !== LandscapeType.NONE) {
           // landscape layer
           let landscapeTile = this.landscapeLayer.putTileAt(map[1][j + columns * i] - 1, j, i, false);
           landscapeTile.updatePixelXY();
@@ -259,32 +276,34 @@ export class Game extends Scene {
         const tile = this.terrainLayer.getTileAtWorldXY(worldPoint.x, worldPoint.y);
         if (tile) {
           const cubeCoords = this.pathFinder.offsetToCube({ x: tile.x, y: tile.y });
-          
+
           // move unit
-          if(this.lastClickedTile !== undefined && 
+          if (
+            this.lastClickedTile !== undefined &&
             this.lastSelectedUnitId !== undefined &&
             this.pathTiles.length > 0 &&
-            this.lastClickedTile.q === cubeCoords.q && 
-            this.lastClickedTile.r === cubeCoords.r && 
-            this.lastClickedTile.s === cubeCoords.s) {
-              // update position for unit manager
-              const success = this.unitManager.moveUnitByPath(this.lastSelectedUnitId, this.pathTiles);
-              if (success) {
-                // update position of display
-                let unit = this.unitManager.getUnitById(this.lastSelectedUnitId) as unknown as Unit;
-                unit.x = tile.pixelX + this.tileWidth / 2;
-                unit.y = tile.pixelY + this.tileHeight / 2;
-                this.lastSelectedUnitId = undefined;
-                this.lastClickedTile = undefined;
-                this.lastSelectedUnit = undefined;
-                // update unit UI
-                const uiComponent = this.components.findComponent(unit, UnitUIComponent) as UnitUIComponent;
-                if(uiComponent) {
-                  uiComponent.updateHealthBar(unit.unitHealth / unit.unitMaxHealth);
-                  uiComponent.updateMovementBar(unit.unitMovement / unit.unitMaxMovement);
-                  uiComponent.updateStep();
-                }
+            this.lastClickedTile.q === cubeCoords.q &&
+            this.lastClickedTile.r === cubeCoords.r &&
+            this.lastClickedTile.s === cubeCoords.s
+          ) {
+            // update position for unit manager
+            const success = this.unitManager.moveUnitByPath(this.lastSelectedUnitId, this.pathTiles);
+            if (success) {
+              // update position of display
+              let unit = this.unitManager.getUnitById(this.lastSelectedUnitId) as unknown as Unit;
+              unit.x = tile.pixelX + this.tileWidth / 2;
+              unit.y = tile.pixelY + this.tileHeight / 2;
+              this.lastSelectedUnitId = undefined;
+              this.lastClickedTile = undefined;
+              this.lastSelectedUnit = undefined;
+              // update unit UI
+              const uiComponent = this.components.findComponent(unit, UnitUIComponent) as UnitUIComponent;
+              if (uiComponent) {
+                uiComponent.updateHealthBar(unit.unitHealth / unit.unitMaxHealth);
+                uiComponent.updateMovementBar(unit.unitMovement / unit.unitMaxMovement);
+                uiComponent.updateStep();
               }
+            }
           }
 
           // check if it is a unit
@@ -292,7 +311,7 @@ export class Game extends Scene {
 
           // select unit (can also handle more than one unit on the same tile)
           // TODO
-          if(units.length > 0) {
+          if (units.length > 0) {
             this.lastSelectedUnitId = units[0].unitId ?? undefined;
             this.lastSelectedUnit = units[0] as unknown as Unit;
           }
@@ -300,18 +319,18 @@ export class Game extends Scene {
           if (units.length === 0) {
             if (this.menu) {
               const resources = this.resourceManager.getResources(cubeCoords);
-              let resourceString: string = "";
-              if(resources != undefined) {
-                resources.forEach(resource => {
-                  switch(resource.type){
-                    case ResourceType.FOOD: 
-                      resourceString = resourceString + " food: " + resource.amount;
+              let resourceString: string = '';
+              if (resources != undefined) {
+                resources.forEach((resource) => {
+                  switch (resource.type) {
+                    case ResourceType.FOOD:
+                      resourceString = resourceString + ' food: ' + resource.amount;
                       break;
-                    case ResourceType.GOLD: 
-                      resourceString = resourceString + " gold: " + resource.amount;
+                    case ResourceType.GOLD:
+                      resourceString = resourceString + ' gold: ' + resource.amount;
                       break;
-                    case ResourceType.PRODUCTION: 
-                      resourceString = resourceString + " prod: " + resource.amount;
+                    case ResourceType.PRODUCTION:
+                      resourceString = resourceString + ' prod: ' + resource.amount;
                       break;
                   }
                 });
@@ -340,14 +359,18 @@ export class Game extends Scene {
           } else {
             let reachablePath = true;
             // select unit a second time with shown path -> remove path
-            if(this.movementRenderer.isVisible()) {
+            if (this.movementRenderer.isVisible()) {
               this.pathTiles = [];
               this.movementRenderer.reset();
               reachablePath = false;
             }
             // compute reachable tiles and render them
             if (this.pathTiles.length == 0 && reachablePath && this.lastSelectedUnit !== undefined) {
-              this.reachableTiles = this.pathFinder.reachableTiles(cubeCoords, this.lastSelectedUnit.unitMovement, this.lastSelectedUnit.unitLayer);
+              this.reachableTiles = this.pathFinder.reachableTiles(
+                cubeCoords,
+                this.lastSelectedUnit.unitMovement,
+                this.lastSelectedUnit.unitLayer,
+              );
               this.movementRenderer.create(this.reachableTiles);
               createdPath = true; // set this flag to avoid removing path
             }
@@ -373,7 +396,7 @@ export class Game extends Scene {
                   // if clicked outside of marked tiles -> remove path
                   this.pathTiles = [];
                 }
-              }/* else {
+              } /* else {
                 // if clicked on start tile -> remove path
                 this.pathTiles = [];
               }*/
@@ -429,53 +452,61 @@ export class Game extends Scene {
     this.menu = this.scene.get('GameMenu') as GameMenu;
 
     // units
-    let tankCoordinate = {q:0, r:0, s:0};
-    let tankCoordinateOffset = {x:0, y:0};
-    let settlerCoordinate = {q:0, r:0, s:0};
-    let settlerCoordinateOffset = {x:0, y:0};
-    let shipCoordinate = {q:0, r:0, s:0};
-    let shipCoordinateOffset = {x:0, y:0};
+    let tankCoordinate = { q: 0, r: 0, s: 0 };
+    let tankCoordinateOffset = { x: 0, y: 0 };
+    let settlerCoordinate = { q: 0, r: 0, s: 0 };
+    let settlerCoordinateOffset = { x: 0, y: 0 };
+    let shipCoordinate = { q: 0, r: 0, s: 0 };
+    let shipCoordinateOffset = { x: 0, y: 0 };
     let planeCoordinate = { q: 0, r: 5, s: -5 };
-    let cityCoordinate = {q:0, r:0, s:0};
-    let cityCoordinateOffset = {x:0, y:0};
-    for(let i = 5; i < 20; ++i) {
-      for(let j = 5; j < 20; ++j) {
-        if(settlerCoordinate.q === 0) {
-          if(map[0][(i*columns) + j] !== TerrainType.DEEP_WATER && 
-             map[0][(i*columns) + j] !== TerrainType.SHALLOW_WATER &&
-             map[0][(i*columns) + j] !== TerrainType.MOUNTAIN) {
+    let cityCoordinate = { q: 0, r: 0, s: 0 };
+    let cityCoordinateOffset = { x: 0, y: 0 };
+    for (let i = 5; i < 20; ++i) {
+      for (let j = 5; j < 20; ++j) {
+        if (settlerCoordinate.q === 0) {
+          if (
+            map[0][i * columns + j] !== TerrainType.DEEP_WATER &&
+            map[0][i * columns + j] !== TerrainType.SHALLOW_WATER &&
+            map[0][i * columns + j] !== TerrainType.MOUNTAIN
+          ) {
             settlerCoordinate = this.pathFinder.offsetToCube({ x: j, y: i });
             settlerCoordinateOffset = { x: j, y: i };
             continue;
           }
         }
-        if(tankCoordinate.q === 0) {
-          if(map[0][(i*columns) + j] !== TerrainType.DEEP_WATER && 
-             map[0][(i*columns) + j] !== TerrainType.SHALLOW_WATER &&
-             map[0][(i*columns) + j] !== TerrainType.MOUNTAIN) {
+        if (tankCoordinate.q === 0) {
+          if (
+            map[0][i * columns + j] !== TerrainType.DEEP_WATER &&
+            map[0][i * columns + j] !== TerrainType.SHALLOW_WATER &&
+            map[0][i * columns + j] !== TerrainType.MOUNTAIN
+          ) {
             tankCoordinate = this.pathFinder.offsetToCube({ x: j, y: i });
             tankCoordinateOffset = { x: j, y: i };
             continue;
           }
         }
-        if(shipCoordinate.q === 0) {
-          if(map[0][(i*columns) + j] === TerrainType.DEEP_WATER ||
-            map[0][(i*columns) +  j] === TerrainType.SHALLOW_WATER) {
+        if (shipCoordinate.q === 0) {
+          if (
+            map[0][i * columns + j] === TerrainType.DEEP_WATER ||
+            map[0][i * columns + j] === TerrainType.SHALLOW_WATER
+          ) {
             shipCoordinate = this.pathFinder.offsetToCube({ x: j, y: i });
             shipCoordinateOffset = { x: j, y: i };
             continue;
           }
         }
-        if(cityCoordinate.q === 0) {
-          if(map[0][(i*columns) + j] !== TerrainType.DEEP_WATER && 
-             map[0][(i*columns) + j] !== TerrainType.SHALLOW_WATER &&
-             map[0][(i*columns) + j] !== TerrainType.MOUNTAIN) {
+        if (cityCoordinate.q === 0) {
+          if (
+            map[0][i * columns + j] !== TerrainType.DEEP_WATER &&
+            map[0][i * columns + j] !== TerrainType.SHALLOW_WATER &&
+            map[0][i * columns + j] !== TerrainType.MOUNTAIN
+          ) {
             cityCoordinate = this.pathFinder.offsetToCube({ x: j, y: i });
             cityCoordinateOffset = { x: j, y: i };
             continue;
           }
         }
-        if(tankCoordinate.q !== 0 && shipCoordinate.q !== 0 && cityCoordinate.q !== 0) {
+        if (tankCoordinate.q !== 0 && shipCoordinate.q !== 0 && cityCoordinate.q !== 0) {
           break;
         }
       }
@@ -483,13 +514,21 @@ export class Game extends Scene {
 
     // create example units
     this.createUnit(tankCoordinate, tankCoordinateOffset, 'tank', this.playerId, 3, UnitType.WARRIOR, Layers.LAND);
-    this.createUnit(settlerCoordinate, settlerCoordinateOffset, 'settler', this.playerId, 5, UnitType.SETTLER, Layers.LAND);
-    this.createUnit(shipCoordinate, shipCoordinateOffset, 'ship',  this.playerId, 5, UnitType.WARRIOR, Layers.SEA);
-    this.createUnit(planeCoordinate, {x:2, y:5}, 'plane',  this.playerId, 8, UnitType.WARRIOR, Layers.AIR);
+    this.createUnit(
+      settlerCoordinate,
+      settlerCoordinateOffset,
+      'settler',
+      this.playerId,
+      5,
+      UnitType.SETTLER,
+      Layers.LAND,
+    );
+    this.createUnit(shipCoordinate, shipCoordinateOffset, 'ship', this.playerId, 5, UnitType.WARRIOR, Layers.SEA);
+    this.createUnit(planeCoordinate, { x: 2, y: 5 }, 'plane', this.playerId, 8, UnitType.WARRIOR, Layers.AIR);
 
     // create cities
     this.createCity(cityCoordinate, cityCoordinateOffset, 'Vienna', this.playerId);
-    let newCityCoordinate = {q:cityCoordinate.q + 3, r:cityCoordinate.r + 1, s:cityCoordinate.s - 3};
+    let newCityCoordinate = { q: cityCoordinate.q + 3, r: cityCoordinate.r + 1, s: cityCoordinate.s - 3 };
     let newCityCoordinateOffset = this.pathFinder.cubeToOffset(newCityCoordinate);
     this.createCity(newCityCoordinate, newCityCoordinateOffset, 'Salzburg', this.playerId);
   }
@@ -538,12 +577,22 @@ export class Game extends Scene {
     }
   }
 
-  private createUnit(coordinate: {q:number, r:number, s:number}, offsetCoordinate: {x:number, y:number}, unitName: string, playerId: number, movementPoints: number, unitType: UnitType, layer: number ) {
+  private createUnit(
+    coordinate: { q: number; r: number; s: number },
+    offsetCoordinate: { x: number; y: number },
+    unitName: string,
+    playerId: number,
+    movementPoints: number,
+    unitType: UnitType,
+    layer: number,
+  ) {
     let tankTile = this.terrainLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
-    const unit = new Unit(this, tankTile.pixelX + this.tileWidth / 2, tankTile.pixelY + this.tileHeight / 2, unitName).setInteractive(
-      new Phaser.Geom.Circle(16, 17, 16),
-      Phaser.Geom.Circle.Contains,
-    );
+    const unit = new Unit(
+      this,
+      tankTile.pixelX + this.tileWidth / 2,
+      tankTile.pixelY + this.tileHeight / 2,
+      unitName,
+    ).setInteractive(new Phaser.Geom.Circle(16, 17, 16), Phaser.Geom.Circle.Contains);
     unit.unitType = unitType;
     unit.unitLayer = layer;
     unit.unitPosition = coordinate;
@@ -552,23 +601,36 @@ export class Game extends Scene {
     unit.unitHealth = unit.unitMaxHealth;
     unit.unitMaxMovement = movementPoints;
     unit.unitMovement = unit.unitMaxMovement;
-    if(this.unitManager.createUnit(unit)) {console.log(`${unitType} created (${unit.unitProductionCost}, ${unit.unitPurchaseCost})`)};
+    if (this.unitManager.createUnit(unit)) {
+      console.log(`${unitType} created (${unit.unitProductionCost}, ${unit.unitPurchaseCost})`);
+    }
     this.children.add(unit);
-    this.components.addComponent(unit, new UnitUIComponent(
-      this.add.image(0, 0, 'bar-horizontal-green'),
-      this.add.image(0, 0, 'bar-horizontal-orange'),
-      this.add.image(0, 0, 'bar-horizontal-background')));
+    this.components.addComponent(
+      unit,
+      new UnitUIComponent(
+        this.add.image(0, 0, 'bar-horizontal-green'),
+        this.add.image(0, 0, 'bar-horizontal-orange'),
+        this.add.image(0, 0, 'bar-horizontal-background'),
+      ),
+    );
   }
 
-  private createCity(coordinate: {q:number, r:number, s:number}, offsetCoordinate: {x:number, y:number}, cityName: string, playerId: number) {
+  private createCity(
+    coordinate: { q: number; r: number; s: number },
+    offsetCoordinate: { x: number; y: number },
+    cityName: string,
+    playerId: number,
+  ) {
     let cityTile = this.terrainLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
-    const city = new City(this, cityTile.pixelX + this.tileWidth / 2, cityTile.pixelY + this.tileHeight / 2, 'city').setInteractive(
-      new Phaser.Geom.Circle(16, 17, 16),
-      Phaser.Geom.Circle.Contains,
-    );
+    const city = new City(
+      this,
+      cityTile.pixelX + this.tileWidth / 2,
+      cityTile.pixelY + this.tileHeight / 2,
+      'city',
+    ).setInteractive(new Phaser.Geom.Circle(16, 17, 16), Phaser.Geom.Circle.Contains);
     city.cityPlayer = playerId;
     city.cityPosition = coordinate;
-    city.cityPositionPixel = {x: cityTile.pixelX, y: cityTile.pixelY};
+    city.cityPositionPixel = { x: cityTile.pixelX, y: cityTile.pixelY };
     city.cityName = cityName;
     // initialize city tiles
     city.cityTiles = [];
@@ -578,41 +640,47 @@ export class Game extends Scene {
       const tilePositionOffset = this.pathFinder.cubeToOffset(neighbor);
       const tilePixel = this.terrainLayer.getTileAt(tilePositionOffset.x, tilePositionOffset.y);
       city.cityTiles.push(neighbor);
-      city.cityTilesPixel.push({x: tilePixel.pixelX, y: tilePixel.pixelY});
+      city.cityTilesPixel.push({ x: tilePixel.pixelX, y: tilePixel.pixelY });
     });
     city.cityBorders = [];
-    if(this.cityManager.createCity(city)) {console.log(cityName + ' created')}; 
+    if (this.cityManager.createCity(city)) {
+      console.log(cityName + ' created');
+    }
     //compute city borders
     this.cityManager.createCityBorders(city.cityPlayer, this.tileWidth, this.tileHeight);
     this.children.add(city);
-    this.components.addComponent(city, new CityUIComponent(
+    this.components.addComponent(
       city,
-      {x: cityTile.pixelX - 2, y: cityTile.pixelY + this.tileHeight - 4}));
+      new CityUIComponent(city, { x: cityTile.pixelX - 2, y: cityTile.pixelY + this.tileHeight - 4 }),
+    );
   }
 
   private growCity(cityId: number) {
     const city = this.cityManager.getCityById(cityId) as City;
-    if(city === undefined) {
+    if (city === undefined) {
       return;
     }
     // add a random new neighbor tile
     let tileAdded = false;
-    for(let i = 0; i < city.cityTiles.length; ++i) {
+    for (let i = 0; i < city.cityTiles.length; ++i) {
       // find neighbor tiles
       const neighbors = this.pathFinder.neighborTiles(city.cityTiles[i]);
-      for(let j = 0; j < neighbors.length; ++j) {
+      for (let j = 0; j < neighbors.length; ++j) {
         const tilePositionOffset = this.pathFinder.cubeToOffset(neighbors[j]);
         const tilePixel = this.terrainLayer.getTileAt(tilePositionOffset.x, tilePositionOffset.y);
-        tileAdded = this.cityManager.addCityTile(city.cityId, neighbors[j], {x: tilePixel.pixelX, y: tilePixel.pixelY});
-        if(tileAdded) {
+        tileAdded = this.cityManager.addCityTile(city.cityId, neighbors[j], {
+          x: tilePixel.pixelX,
+          y: tilePixel.pixelY,
+        });
+        if (tileAdded) {
           break;
         }
       }
-      if(tileAdded) {
+      if (tileAdded) {
         break;
       }
     }
-    if(tileAdded) {
+    if (tileAdded) {
       this.updateCityBorders();
     }
   }
@@ -622,9 +690,9 @@ export class Game extends Scene {
     //compute city borders
     this.cityManager.createCityBorders(this.playerId, this.tileWidth, this.tileHeight);
     // update city UI for each city
-    cities.forEach(city => {
+    cities.forEach((city) => {
       const uiComponent = this.components.findComponent(city, CityUIComponent) as CityUIComponent;
-      if(uiComponent) {
+      if (uiComponent) {
         uiComponent.updateBorders();
       }
     });
@@ -632,11 +700,11 @@ export class Game extends Scene {
 
   private settlerToCity(unitId: number) {
     const settler = this.unitManager.getUnitById(unitId) as Unit;
-    if(settler === undefined) {
+    if (settler === undefined) {
       console.log('Unit not found');
       return;
     }
-    if(settler.unitType !== UnitType.SETTLER) {
+    if (settler.unitType !== UnitType.SETTLER) {
       console.log('Unit is not a settler');
       return;
     }
