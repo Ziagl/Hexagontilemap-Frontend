@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { GameMenu } from './game_menu.ts';
-import { Generator, LandscapeType, MapSize, MapType, TerrainType } from '@ziagl/tiled-map-generator';
+import { Generator, LandscapeType, MapSize, MapType, TerrainType, WaterFlowType } from '@ziagl/tiled-map-generator';
 import { PathFinder } from '@ziagl/tiled-map-path-finder';
 import { CubeCoordinates } from 'honeycomb-grid';
 import { MovementCosts, MovementType } from '../map/MovementCosts.ts';
@@ -29,6 +29,7 @@ export class Game extends Scene {
   private marker: Phaser.GameObjects.Graphics;
   private terrainLayer: Phaser.Tilemaps.TilemapLayer;
   private landscapeLayer: Phaser.Tilemaps.TilemapLayer;
+  private riverLayer: Phaser.Tilemaps.TilemapLayer;
   private menu: GameMenu;
   private minimap: Phaser.Cameras.Scene2D.Camera;
 
@@ -203,6 +204,17 @@ export class Game extends Scene {
       this.tileHeight,
     )!;
     this.landscapeLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
+    this.riverLayer = this.map.createBlankLayer(
+      'RiverLayer',
+      tileset!,
+      0,
+      0,
+      columns,
+      rows,
+      this.tileWidth,
+      this.tileHeight,
+    )!;
+    this.riverLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
 
     // convert 1D -> 2D
     for (let i = 0; i < rows; i++) {
@@ -218,6 +230,12 @@ export class Game extends Scene {
           // landscape layer
           let landscapeTile = this.landscapeLayer.putTileAt(map[1][j + columns * i] - 1, j, i, false);
           landscapeTile.updatePixelXY();
+        }
+        if (map[2][j + columns * i] === WaterFlowType.RIVER) {
+          console.log("added river tile at "+j+","+i);
+          // river layer
+          let riverTile = this.riverLayer.putTileAt(map[2][j + columns * i] - 1, j, i, false);
+          riverTile.updatePixelXY();
         }
       }
     }
