@@ -2,7 +2,7 @@ import { Scene } from 'phaser';
 import { GameMenu } from './game_menu.ts';
 import { Generator, LandscapeType, MapSize, MapType, TerrainType, WaterFlowType } from '@ziagl/tiled-map-generator';
 import { PathFinder } from '@ziagl/tiled-map-path-finder';
-import { CubeCoordinates } from 'honeycomb-grid';
+import { CubeCoordinates, Direction } from 'honeycomb-grid';
 import { MovementCosts, MovementType } from '../map/MovementCosts.ts';
 import { Dictionary } from '../interfaces/IDictionary.ts';
 import { MovementRenderer } from '../map/MovementRenderer.ts';
@@ -29,7 +29,8 @@ export class Game extends Scene {
   private marker: Phaser.GameObjects.Graphics;
   private terrainLayer: Phaser.Tilemaps.TilemapLayer;
   private landscapeLayer: Phaser.Tilemaps.TilemapLayer;
-  private riverLayer: Phaser.Tilemaps.TilemapLayer;
+  private riverLayer: Phaser.Tilemaps.TilemapLayer[] = [];
+  private readonly riverLayerCount = 6;
   private menu: GameMenu;
   private minimap: Phaser.Cameras.Scene2D.Camera;
 
@@ -118,15 +119,17 @@ export class Game extends Scene {
 
     //dynamic
     const generator = new Generator();
+    // @ts-ignore
+    const gameData = this.gameData;
     console.log(
       'Create new random map with type ' +
-        MapType[this.gameData.mapType as keyof typeof MapType].toString() +
+        MapType[gameData.mapType as keyof typeof MapType].toString() +
         ' and size ' +
-        MapSize[this.gameData.mapSize as keyof typeof MapSize].toString(),
+        MapSize[gameData.mapSize as keyof typeof MapSize].toString(),
     );
-    // @ts-ignore
-    generator.generateMap(this.gameData.mapType, this.gameData.mapSize, MapTemperature.NORMAL, MapHumidity.NORMAL);
+    generator.generateMap(gameData.mapType, gameData.mapSize, MapTemperature.NORMAL, MapHumidity.NORMAL, 2.0);
     const [map, rows, columns] = generator.exportMap();
+    const riverTileDirections = generator.exportRiverTileDirections();
     console.log('map rows ' + rows + ' columns ' + columns);
     generator.print();
 
@@ -204,18 +207,20 @@ export class Game extends Scene {
       this.tileHeight,
     )!;
     this.landscapeLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
-    this.riverLayer = this.map.createBlankLayer(
-      'RiverLayer',
-      tileset!,
-      0,
-      0,
-      columns,
-      rows,
-      this.tileWidth,
-      this.tileHeight,
-    )!;
-    this.riverLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
-
+    // create riverLayerCount river layers, because a river curve can lead to at least 4 river tiles per coordinate
+    for(let i = 0; i < this.riverLayerCount; ++i) {
+      this.riverLayer[i] = this.map.createBlankLayer(
+        'RiverLayer' + i,
+        tileset!,
+        0,
+        0,
+        columns,
+        rows,
+        this.tileWidth,
+        this.tileHeight,
+      )!;
+      this.riverLayer[i].layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
+    }
     // convert 1D -> 2D
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < columns; j++) {
@@ -232,10 +237,27 @@ export class Game extends Scene {
           landscapeTile.updatePixelXY();
         }
         if (map[2][j + columns * i] === WaterFlowType.RIVER) {
-          console.log("added river tile at "+j+","+i);
-          // river layer
-          let riverTile = this.riverLayer.putTileAt(map[2][j + columns * i] - 1, j, i, false);
-          riverTile.updatePixelXY();
+          // get directions for this tile
+          let directions = riverTileDirections.get(Utils.coordinateToKey(tileCoords));
+          //console.log("round "+directions?.length+" at "+j+","+i);
+          let layerIndex = 0;
+          directions?.forEach((direction) => {
+            // get base river tile index and add direction details
+            let tileIndex = map[2][j + columns * i] - 1;
+            switch(direction) {
+              case Direction.NW: tileIndex+=5; break;
+              case Direction.W: tileIndex+=4;break;
+              case Direction.SW: tileIndex+=3; break;
+              case Direction.SE: tileIndex+=2; break;
+              case Direction.E: tileIndex+=1; break;
+              case Direction.NE: break;
+            }
+            console.log("added river tile at "+j+","+i);
+            // river layer
+            let riverTile = this.riverLayer[layerIndex].putTileAt(tileIndex, j, i, false);
+            riverTile.updatePixelXY();
+            ++layerIndex;
+          });
         }
       }
     }
