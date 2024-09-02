@@ -31,6 +31,7 @@ export class Game extends Scene {
   private landscapeLayer: Phaser.Tilemaps.TilemapLayer;
   private riverLayer: Phaser.Tilemaps.TilemapLayer[] = [];
   private readonly riverLayerCount = 6;
+  private riverDebugLayer: Phaser.Tilemaps.TilemapLayer;
   private menu: GameMenu;
   private minimap: Phaser.Cameras.Scene2D.Camera;
 
@@ -221,6 +222,18 @@ export class Game extends Scene {
       )!;
       this.riverLayer[i].layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
     }
+    // create river debug layer
+    this.riverDebugLayer = this.map.createBlankLayer(
+      'RiverDebugLayer',
+      tileset!,
+      0,
+      0,
+      columns,
+      rows,
+      this.tileWidth,
+      this.tileHeight,
+    )!;
+    this.riverDebugLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
     // convert 1D -> 2D
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < columns; j++) {
@@ -256,8 +269,18 @@ export class Game extends Scene {
             // river layer
             let riverTile = this.riverLayer[layerIndex].putTileAt(tileIndex, j, i, false);
             riverTile.updatePixelXY();
+            let debugTile = this.riverDebugLayer.putTileAt(28, j, i, false);
+            debugTile.updatePixelXY();
             ++layerIndex;
           });
+        }
+        if(map[2][j + columns * i] === WaterFlowType.RIVERBED) {
+          let riverTile = this.riverDebugLayer.putTileAt(27, j, i, false);
+          riverTile.updatePixelXY();
+        }
+        if(map[2][j + columns * i] === WaterFlowType.NONE) {
+          let riverTile = this.riverDebugLayer.putTileAt(26, j, i, false);
+          riverTile.updatePixelXY();
         }
       }
     }
