@@ -19,6 +19,7 @@ import { MapHumidity } from '@ziagl/tiled-map-generator/lib/main/enums/MapHumidi
 import { ResourceManager, ResourceType } from '@ziagl/tiled-map-resources';
 import { ResourceGenerator } from '../map/ResourceGenerator.ts';
 import { Utils } from '@ziagl/tiled-map-utils';
+import eventsCenter from '../services/EventService.ts';
 
 export class Game extends Scene {
   private isDesktop = false;
@@ -34,6 +35,7 @@ export class Game extends Scene {
   private riverDebugLayer: Phaser.Tilemaps.TilemapLayer;
   private menu: GameMenu;
   private minimap: Phaser.Cameras.Scene2D.Camera;
+  private debugMode = false;
 
   // services
   private components: ComponentService;
@@ -234,6 +236,7 @@ export class Game extends Scene {
       this.tileHeight,
     )!;
     this.riverDebugLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
+    this.riverDebugLayer.visible = this.debugMode;
     // convert 1D -> 2D
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < columns; j++) {
@@ -594,6 +597,12 @@ export class Game extends Scene {
     let newCityCoordinate = { q: cityCoordinate.q + 3, r: cityCoordinate.r + 1, s: cityCoordinate.s - 3 };
     let newCityCoordinateOffset = this.pathFinder.cubeToOffset(newCityCoordinate);
     this.createCity(newCityCoordinate, newCityCoordinateOffset, 'Salzburg', this.playerId);
+
+    // listen to events
+    eventsCenter.on('debugModeToggle', () => {
+      this.debugMode = !this.debugMode;
+      this.riverDebugLayer.visible = this.debugMode;
+    });
   }
 
   update(time: number, delta: number) {
@@ -637,6 +646,9 @@ export class Game extends Scene {
     }
     if (code === Phaser.Input.Keyboard.KeyCodes.C) {
       this.settlerToCity(2); // createcity with 2 (unitId of settler)
+    }
+    if (code === Phaser.Input.Keyboard.KeyCodes.D) {
+      eventsCenter.emit('debugModeToggle');
     }
   }
 

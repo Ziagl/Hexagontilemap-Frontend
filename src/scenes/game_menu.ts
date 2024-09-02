@@ -1,4 +1,6 @@
 import { Scene } from 'phaser';
+import { Game } from './game';
+import eventsCenter from '../services/EventService';
 
 enum Tilenames {
   DEEP_WATER = 'Deep water',
@@ -23,6 +25,10 @@ export class GameMenu extends Scene {
   private tileName: Phaser.GameObjects.DOMElement;
   private tileInformation: Phaser.GameObjects.DOMElement;
   private style: any;
+
+  private buttonColorDefault = 0xffffff;
+  private buttonColorHover = 0x66ff7f;
+  private buttonColorClick = 0xff0000;
 
   constructor() {
     super('GameMenu');
@@ -49,6 +55,9 @@ export class GameMenu extends Scene {
   }
 
   create() {
+    const mapButtonWidth = this.scale.width / 15;
+    const mapButtonHeight = mapButtonWidth / 3;
+
     // create tile menu container
     this.tileMenu = this.add.container(0, 0);
     const backgroundImage = this.add
@@ -70,6 +79,35 @@ export class GameMenu extends Scene {
       .setOrigin(1, 0);
     this.tileMenu.add(this.tileInformation);
     this.tileMenu.visible = false;
+
+    // create map buttons
+    // create debug button
+    const debugButton = this.add
+      .image(mapButtonWidth * 0.5, this.scale.height - 290, this.background)
+      .setDisplaySize(mapButtonWidth, mapButtonHeight);
+    this.add.text(debugButton.x, debugButton.y, 'Debug').setOrigin(0.5);
+    // add style
+    debugButton
+      .setInteractive()
+      .on('pointerup', () => {
+        debugButton.setTint(this.buttonColorHover);
+        debugButton.emit('selected');
+      })
+      .on('pointerdown', () => {
+        debugButton.setTint(this.buttonColorClick);
+      })
+      .on('pointerover', () => {
+        debugButton.setTint(this.buttonColorHover);
+      })
+      .on('pointerout', () => {
+        debugButton.setTint(this.buttonColorDefault);
+      });
+    // add events
+    debugButton.on('selected', () => {
+      console.log('Debug button clicked');
+      // create debugModeToggle event
+      eventsCenter.emit('debugModeToggle');
+    });
   }
 
   update() {
