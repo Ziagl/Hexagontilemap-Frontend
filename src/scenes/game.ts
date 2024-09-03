@@ -262,7 +262,7 @@ export class Game extends Scene {
             let tileIndex = map[2][j + columns * i] - 1;
             switch(direction) {
               case Direction.NW: tileIndex+=5; break;
-              case Direction.W: tileIndex+=4;break;
+              case Direction.W: tileIndex+=4; break;
               case Direction.SW: tileIndex+=3; break;
               case Direction.SE: tileIndex+=2; break;
               case Direction.E: tileIndex+=1; break;
@@ -272,19 +272,18 @@ export class Game extends Scene {
             // river layer
             let riverTile = this.riverLayer[layerIndex].putTileAt(tileIndex, j, i, false);
             riverTile.updatePixelXY();
-            let debugTile = this.riverDebugLayer.putTileAt(28, j, i, false);
-            debugTile.updatePixelXY();
             ++layerIndex;
           });
         }
-        if(map[2][j + columns * i] === WaterFlowType.RIVERBED) {
-          let riverTile = this.riverDebugLayer.putTileAt(27, j, i, false);
-          riverTile.updatePixelXY();
+        // add tiles to debug layer
+        let index = 28;
+        switch(map[2][j + columns * i]) {
+          //case: WaterFlowType.RIVER:
+          case WaterFlowType.RIVERBED: index = 27; break;
+          case WaterFlowType.NONE: index = 26; break;
         }
-        if(map[2][j + columns * i] === WaterFlowType.NONE) {
-          let riverTile = this.riverDebugLayer.putTileAt(26, j, i, false);
-          riverTile.updatePixelXY();
-        }
+        let debugTile = this.riverDebugLayer.putTileAt(index, j, i, false);
+        debugTile.updatePixelXY();
       }
     }
 
@@ -419,7 +418,9 @@ export class Game extends Scene {
                   ' , Index: ' +
                   tile.index +
                   ' Resources: ' +
-                  resourceString,
+                  resourceString +
+                  ' Water Status: ' + 
+                  map[2][tile.x + columns * tile.y],
               );
             }
           } else {
