@@ -255,7 +255,6 @@ export class Game extends Scene {
         if (map[2][j + columns * i] === WaterFlowType.RIVER) {
           // get directions for this tile
           let directions = riverTileDirections.get(Utils.coordinateToKey(tileCoords));
-          //console.log("round "+directions?.length+" at "+j+","+i);
           let layerIndex = 0;
           directions?.forEach((direction) => {
             // get base river tile index and add direction details
@@ -268,7 +267,6 @@ export class Game extends Scene {
               case Direction.E: tileIndex+=1; break;
               case Direction.NE: break;
             }
-            console.log("added river tile at "+j+","+i);
             // river layer
             let riverTile = this.riverLayer[layerIndex].putTileAt(tileIndex, j, i, false);
             riverTile.updatePixelXY();
@@ -276,10 +274,11 @@ export class Game extends Scene {
           });
         }
         // add tiles to debug layer
-        let index = 28;
+        let index = 29;
         switch(map[2][j + columns * i]) {
           //case: WaterFlowType.RIVER:
-          case WaterFlowType.RIVERBED: index = 27; break;
+          case WaterFlowType.RIVERBANK: index = 28; break;
+          case WaterFlowType.RIVERAREA: index = 27; break;
           case WaterFlowType.NONE: index = 26; break;
         }
         let debugTile = this.riverDebugLayer.putTileAt(index, j, i, false);
