@@ -2,7 +2,8 @@ import { LandscapeType, TerrainType } from '@ziagl/tiled-map-generator';
 import { Resource, ResourceTile, ResourceType } from '@ziagl/tiled-map-resources';
 
 export class ResourceGenerator {
-  // generates a movement cost map based on a given map with tiles
+  
+  // generates a resourcemap based on a given map with tiles
   public static generateMap(
     terrainMap: number[],
     landscapeMap: number[],

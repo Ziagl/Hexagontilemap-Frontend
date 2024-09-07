@@ -27,7 +27,7 @@
     "dependencies": {
         "@kayahr/tiled": "^0.0.1",
         "@ziagl/tiled-map-cities": "^0.0.5",
-        "@ziagl/tiled-map-generator": "^1.2.0",
+        "@ziagl/tiled-map-generator": "^1.2.1",
         "@ziagl/tiled-map-path-finder": "^1.0.3",
         "@ziagl/tiled-map-resources": "^0.0.4",
         "@ziagl/tiled-map-units": "^0.1.7",

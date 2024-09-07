@@ -20,6 +20,7 @@ import { ResourceManager, ResourceType } from '@ziagl/tiled-map-resources';
 import { ResourceGenerator } from '../map/ResourceGenerator.ts';
 import { Utils } from '@ziagl/tiled-map-utils';
 import eventsCenter from '../services/EventService.ts';
+import ResourceComponent from '../components/ResourceComponent.ts';
 
 export class Game extends Scene {
   private isDesktop = false;
@@ -77,6 +78,9 @@ export class Game extends Scene {
   private lastSelectedUnitId: number | undefined = undefined;
   private lastSelectedUnit: Unit | undefined = undefined;
   private lastClickedTile: CubeCoordinates | undefined = undefined;
+
+  // debug
+  private readonly debug = false;
 
   constructor() {
     super('Game');
@@ -224,25 +228,39 @@ export class Game extends Scene {
       )!;
       this.riverLayer[i].layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
     }
-    // create river debug layer
-    this.riverDebugLayer = this.map.createBlankLayer(
-      'RiverDebugLayer',
-      tileset!,
-      0,
-      0,
-      columns,
-      rows,
-      this.tileWidth,
-      this.tileHeight,
-    )!;
-    this.riverDebugLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
-    this.riverDebugLayer.visible = this.debugMode;
+    if(this.debug) {
+      // create river debug layer
+      this.riverDebugLayer = this.map.createBlankLayer(
+        'RiverDebugLayer',
+        tileset!,
+        0,
+        0,
+        columns,
+        rows,
+        this.tileWidth,
+        this.tileHeight,
+      )!;
+      this.riverDebugLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
+      this.riverDebugLayer.visible = this.debugMode;
+    }
     // convert 1D -> 2D
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < columns; j++) {
         // terrain layer
         let tile = this.terrainLayer.putTileAt(map[0][j + columns * i] - 1, j, i, false);
         tile.updatePixelXY(); // update pixel that vertical alignment is correct (hexSideLength needs to be set)
+        const resource = this.add.graphics();
+        const tileResources = this.resourceManager.getResources(this.pathFinder.offsetToCube({x: j, y: i}));
+        if(tileResources) {
+          this.components.addComponent(
+            resource,
+            new ResourceComponent(
+              {x: tile.pixelX, y: tile.pixelY},
+              tileResources
+            ),
+          );
+        }
+
         // add tile to dictionary for later use
         const tileCoords = this.pathFinder.offsetToCube({ x: j, y: i });
         const key = Utils.coordinateToKey(tileCoords);
@@ -273,16 +291,18 @@ export class Game extends Scene {
             ++layerIndex;
           });
         }
-        // add tiles to debug layer
-        let index = 29;
-        switch(map[2][j + columns * i]) {
-          //case: WaterFlowType.RIVER:
-          case WaterFlowType.RIVERBANK: index = 28; break;
-          case WaterFlowType.RIVERAREA: index = 27; break;
-          case WaterFlowType.NONE: index = 26; break;
+        if(this.debug) {
+          // add tiles to debug layer
+          let index = 29;
+          switch(map[2][j + columns * i]) {
+            //case: WaterFlowType.RIVER:
+            case WaterFlowType.RIVERBANK: index = 28; break;
+            case WaterFlowType.RIVERAREA: index = 27; break;
+            case WaterFlowType.NONE: index = 26; break;
+          }
+          let debugTile = this.riverDebugLayer.putTileAt(index, j, i, false);
+          debugTile.updatePixelXY();
         }
-        let debugTile = this.riverDebugLayer.putTileAt(index, j, i, false);
-        debugTile.updatePixelXY();
       }
     }
 
@@ -599,7 +619,9 @@ export class Game extends Scene {
     // listen to events
     eventsCenter.on('debugModeToggle', () => {
       this.debugMode = !this.debugMode;
-      this.riverDebugLayer.visible = this.debugMode;
+      if(this.debug) {
+        this.riverDebugLayer.visible = this.debugMode;
+      }
     });
   }
 
