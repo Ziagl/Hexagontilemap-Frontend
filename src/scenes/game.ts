@@ -417,9 +417,7 @@ export class Game extends Scene {
                   ' , Index: ' +
                   tile.index +
                   ' Resources: ' +
-                  resourceString +
-                  ' Water Status: ' + 
-                  map[2][tile.x + columns * tile.y],
+                  resourceString,
               );
             }
           } else {
