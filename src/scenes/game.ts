@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { GameMenu } from './game_menu.ts';
-import { Generator, LandscapeType, MapSize, MapType, TerrainType, WaterFlowType } from '@ziagl/tiled-map-generator';
+import { Generator, LandscapeType, MapLayer, MapSize, MapType, TerrainType, WaterFlowType } from '@ziagl/tiled-map-generator';
 import { PathFinder } from '@ziagl/tiled-map-path-finder';
 import { CubeCoordinates, Direction } from 'honeycomb-grid';
 import { MovementCosts, MovementType } from '../map/MovementCosts.ts';
@@ -20,7 +20,6 @@ import { ResourceManager, ResourceType } from '@ziagl/tiled-map-resources';
 import { ResourceGenerator } from '../map/ResourceGenerator.ts';
 import { Utils } from '@ziagl/tiled-map-utils';
 import eventsCenter from '../services/EventService.ts';
-import ResourceComponent from '../components/ResourceComponent.ts';
 
 export class Game extends Scene {
   private isDesktop = false;
@@ -31,12 +30,11 @@ export class Game extends Scene {
   private marker: Phaser.GameObjects.Graphics;
   private terrainLayer: Phaser.Tilemaps.TilemapLayer;
   private landscapeLayer: Phaser.Tilemaps.TilemapLayer;
-  private riverLayer: Phaser.Tilemaps.TilemapLayer[] = [];
-  private readonly riverLayerCount = 6;
   private riverDebugLayer: Phaser.Tilemaps.TilemapLayer;
   private menu: GameMenu;
   private minimap: Phaser.Cameras.Scene2D.Camera;
   private debugMode = false;
+  private componentFrameTime = 1000;
 
   // services
   private components: ComponentService;
@@ -80,7 +78,7 @@ export class Game extends Scene {
   private lastClickedTile: CubeCoordinates | undefined = undefined;
 
   // debug
-  private readonly debug = false;
+  private readonly debug = true;
 
   constructor() {
     super('Game');
@@ -154,7 +152,7 @@ export class Game extends Scene {
     // initialize unit manager
     const config = this.cache.json.get('unitsConfig') as IUnit[];
     this.unitManager = new UnitManager(
-      map[0],
+      map[MapLayer.TERRAIN],
       Object.keys(Layers).length,
       rows,
       columns,
@@ -214,20 +212,6 @@ export class Game extends Scene {
       this.tileHeight,
     )!;
     this.landscapeLayer.layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
-    // create riverLayerCount river layers, because a river curve can lead to at least 4 river tiles per coordinate
-    for(let i = 0; i < this.riverLayerCount; ++i) {
-      this.riverLayer[i] = this.map.createBlankLayer(
-        'RiverLayer' + i,
-        tileset!,
-        0,
-        0,
-        columns,
-        rows,
-        this.tileWidth,
-        this.tileHeight,
-      )!;
-      this.riverLayer[i].layer.hexSideLength = mapData.hexSideLength; // set half tile height also for layer
-    }
     if(this.debug) {
       // create river debug layer
       this.riverDebugLayer = this.map.createBlankLayer(
@@ -247,9 +231,9 @@ export class Game extends Scene {
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < columns; j++) {
         // terrain layer
-        let tile = this.terrainLayer.putTileAt(map[0][j + columns * i] - 1, j, i, false);
+        let tile = this.terrainLayer.putTileAt(map[MapLayer.TERRAIN][j + columns * i] - 1, j, i, false);
         tile.updatePixelXY(); // update pixel that vertical alignment is correct (hexSideLength needs to be set)
-        const resource = this.add.graphics();
+        /*const resource = this.add.graphics();
         const tileResources = this.resourceManager.getResources(this.pathFinder.offsetToCube({x: j, y: i}));
         if(tileResources) {
           this.components.addComponent(
@@ -259,46 +243,33 @@ export class Game extends Scene {
               tileResources
             ),
           );
-        }
+        }*/
 
         // add tile to dictionary for later use
         const tileCoords = this.pathFinder.offsetToCube({ x: j, y: i });
         const key = Utils.coordinateToKey(tileCoords);
         this.tileDictionary[key] = tile;
-        if (map[1][j + columns * i] !== LandscapeType.NONE) {
-          // landscape layer
-          let landscapeTile = this.landscapeLayer.putTileAt(map[1][j + columns * i] - 1, j, i, false);
+        if (map[MapLayer.LANDSCAPE][j + columns * i] !== LandscapeType.NONE) {
+          let landscapeTile = this.landscapeLayer.putTileAt(map[MapLayer.LANDSCAPE][j + columns * i] - 1, j, i, false);
           landscapeTile.updatePixelXY();
         }
-        if (map[2][j + columns * i] === WaterFlowType.RIVER) {
-          // get directions for this tile
-          let directions = riverTileDirections.get(Utils.coordinateToKey(tileCoords));
-          let layerIndex = 0;
-          directions?.forEach((direction) => {
-            // get base river tile index and add direction details
-            let tileIndex = map[2][j + columns * i] - 1;
-            switch(direction) {
-              case Direction.NW: tileIndex+=5; break;
-              case Direction.W: tileIndex+=4; break;
-              case Direction.SW: tileIndex+=3; break;
-              case Direction.SE: tileIndex+=2; break;
-              case Direction.E: tileIndex+=1; break;
-              case Direction.NE: break;
-            }
+        if (map[MapLayer.RIVERS][j + columns * i] !== WaterFlowType.NONE) {
+          // special case for river
+          if(map[MapLayer.RIVERS][j + columns * i] === WaterFlowType.RIVER) {
+            // get directions for this tile
+            let tileIndex = this.getRiverTileIndex(riverTileDirections.get(Utils.coordinateToKey(tileCoords)));
             // river layer
-            let riverTile = this.riverLayer[layerIndex].putTileAt(tileIndex, j, i, false);
+            let riverTile = this.landscapeLayer.putTileAt(tileIndex, j, i, false);
             riverTile.updatePixelXY();
-            ++layerIndex;
-          });
+          }
         }
         if(this.debug) {
           // add tiles to debug layer
-          let index = 29;
-          switch(map[2][j + columns * i]) {
-            //case: WaterFlowType.RIVER:
-            case WaterFlowType.RIVERBANK: index = 28; break;
-            case WaterFlowType.RIVERAREA: index = 27; break;
-            case WaterFlowType.NONE: index = 26; break;
+          let index = 44;
+          switch(map[MapLayer.RIVERS][j + columns * i]) {
+            case WaterFlowType.RIVERBANK: index = 46; break;
+            case WaterFlowType.RIVERAREA: index = 45; break;
+            case WaterFlowType.RIVER: index = 47; break;
           }
           let debugTile = this.riverDebugLayer.putTileAt(index, j, i, false);
           debugTile.updatePixelXY();
@@ -402,43 +373,10 @@ export class Game extends Scene {
 
           if (units.length === 0) {
             if (this.menu) {
-              const resources = this.resourceManager.getResources(cubeCoords);
-              let resourceString: string = '';
-              if (resources != undefined) {
-                resources.forEach((resource) => {
-                  switch (resource.type) {
-                    case ResourceType.FOOD:
-                      resourceString = resourceString + ' food: ' + resource.amount;
-                      break;
-                    case ResourceType.GOLD:
-                      resourceString = resourceString + ' gold: ' + resource.amount;
-                      break;
-                    case ResourceType.PRODUCTION:
-                      resourceString = resourceString + ' prod: ' + resource.amount;
-                      break;
-                  }
-                });
-              }
-              // temorarily disabled
-              // TODO
               this.menu.setMenuVisible(true);
               this.menu.setTileImage(tile.index + 1);
-              this.menu.setTileInformation(
-                'OffsetCoords: ' +
-                  tile.x +
-                  ',' +
-                  tile.y +
-                  ' , CubeCoords: ' +
-                  cubeCoords.q +
-                  ',' +
-                  cubeCoords.r +
-                  ',' +
-                  cubeCoords.s +
-                  ' , Index: ' +
-                  tile.index +
-                  ' Resources: ' +
-                  resourceString,
-              );
+              this.menu.setResources(this.resourceManager.getResources(cubeCoords) ?? []);
+              this.menu.setTileInformation(tile, cubeCoords);
             }
           } else {
             let reachablePath = true;
@@ -645,8 +583,12 @@ export class Game extends Scene {
 
   // update for UI stuff
   lateUpdate(time: number, delta: number) {
-    // update all components
-    this.components.update(delta);
+    this.componentFrameTime += delta;
+    if(this.componentFrameTime > 1000) {
+      this.componentFrameTime = 0;
+      // update all components
+      this.components.update(delta);
+    }
   }
 
   anyKey(event: any) {
@@ -814,5 +756,64 @@ export class Game extends Scene {
     // create city
     this.createCity(settlerCoordinate, settlerOffsetCoordinate, 'Graz', this.playerId);
     this.updateCityBorders();
+  }
+
+  private getRiverTileIndex(directions: Direction[] | undefined): number {
+    let tileIndex = WaterFlowType.RIVER - 1;
+    if(directions != undefined) {
+      if(directions?.length == 1) {
+        switch(directions[0]) {
+          case Direction.NW: tileIndex+=5; break;
+          case Direction.W: tileIndex+=4; break;
+          case Direction.SW: tileIndex+=3; break;
+          case Direction.SE: tileIndex+=2; break;
+          case Direction.E: tileIndex+=1; break;
+          case Direction.NE: break;
+        }
+      } else if(directions?.length == 2) {
+        if(directions.includes(Direction.E) && directions.includes(Direction.NE)) {
+          tileIndex+=6;
+        } else if(directions.includes(Direction.SE) && directions.includes(Direction.E)) {
+          tileIndex+=7;
+        } else if(directions.includes(Direction.SW) && directions.includes(Direction.SE)) {
+          tileIndex+=8;
+        } else if(directions.includes(Direction.W) && directions.includes(Direction.SW)) {
+          tileIndex+=9;
+        } else if(directions.includes(Direction.NW) && directions.includes(Direction.W)) {
+          tileIndex+=10;
+        } else if(directions.includes(Direction.NE) && directions.includes(Direction.NW)) {
+          tileIndex+=11;
+        }
+      } else if(directions?.length == 3) {
+        if(directions.includes(Direction.NE) && directions.includes(Direction.E) && directions.includes(Direction.SE)) {
+          tileIndex+=12;
+        } else if(directions.includes(Direction.E) && directions.includes(Direction.SE) && directions.includes(Direction.SW)) {
+          tileIndex+=13;
+        } else if(directions.includes(Direction.SE) && directions.includes(Direction.SW) && directions.includes(Direction.W)) {
+          tileIndex+=14;
+        } else if(directions.includes(Direction.SW) && directions.includes(Direction.W) && directions.includes(Direction.NW)) {
+          tileIndex+=15;
+        } else if(directions.includes(Direction.W) && directions.includes(Direction.NW) && directions.includes(Direction.NE)) {
+          tileIndex+=16;
+        } else if(directions.includes(Direction.NW) && directions.includes(Direction.NE) && directions.includes(Direction.E)) {
+          tileIndex+=17;
+        }
+      } else if(directions?.length == 4) {
+        if(directions.includes(Direction.NE) && directions.includes(Direction.E) && directions.includes(Direction.SE) && directions.includes(Direction.SW)) {
+          tileIndex+=18;
+        } else if(directions.includes(Direction.E) && directions.includes(Direction.SE) && directions.includes(Direction.SW) && directions.includes(Direction.W)) {
+          tileIndex+=19;
+        } else if(directions.includes(Direction.SE) && directions.includes(Direction.SW) && directions.includes(Direction.W) && directions.includes(Direction.NW)) {
+          tileIndex+=20;
+        } else if(directions.includes(Direction.SW) && directions.includes(Direction.W) && directions.includes(Direction.NW) && directions.includes(Direction.NE)) {
+          tileIndex+=21;
+        } else if(directions.includes(Direction.W) && directions.includes(Direction.NW) && directions.includes(Direction.NE) && directions.includes(Direction.E)) {
+          tileIndex+=22;
+        } else if(directions.includes(Direction.NW) && directions.includes(Direction.NE) && directions.includes(Direction.E) && directions.includes(Direction.SE)) {
+          tileIndex+=23;
+        }
+      }
+    }
+    return tileIndex;
   }
 }

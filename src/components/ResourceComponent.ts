@@ -1,6 +1,7 @@
 import { Resource } from '@ziagl/tiled-map-resources';
 import { IComponent } from '../interfaces/IComponent';
 
+// This is currently not used, because of performance issues
 export default class ResourceComponent implements IComponent {
   private readonly resourceColors: number[] = [0x41a71a, 0xeb7400, 0xf7ce2b];
   private readonly resourceAlpha = 1.0;
@@ -30,21 +31,21 @@ export default class ResourceComponent implements IComponent {
 
     let startPositions = [{x: 14, y: 20}];
     switch(this.tileResources.length) {
-        case 1:
-            break;
-        case 2: 
-            startPositions = [{x: 10, y: 20}, {x: 18, y: 20}];
-            break;
-        case 3: 
-            startPositions = [{x: 5, y: 20}, {x: 14, y: 20}, {x: 23, y: 20}];
-            break;
+      case 1:
+        break;
+      case 2: 
+        startPositions = [{x: 10, y: 20}, {x: 18, y: 20}];
+        break;
+      case 3: 
+        startPositions = [{x: 5, y: 20}, {x: 14, y: 20}, {x: 23, y: 20}];
+        break;
     }
 
     for(let i = 0; i < this.tileResources.length; ++i) {
-        const positionOffset = [{x:0, y:0}, {x:4, y:0}, {x:0, y:4}, {x:4, y:0}];
-        for(let j = 0; j < this.tileResources[i].amount; ++j) {
-            this.addResource(scene, this.tileResources[i].type, {x: startPositions[i].x + positionOffset[j].x, y: startPositions[i].y + positionOffset[j].y});
-        }
+      const positionOffset = [{x:0, y:0}, {x:4, y:0}, {x:0, y:4}, {x:4, y:0}];
+      for(let j = 0; j < this.tileResources[i].amount; ++j) {
+          this.addResource(scene, this.tileResources[i].type, {x: startPositions[i].x + positionOffset[j].x, y: startPositions[i].y + positionOffset[j].y});
+      }
     }
   }
 

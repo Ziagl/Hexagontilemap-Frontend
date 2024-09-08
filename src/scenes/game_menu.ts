@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
-import { Game } from './game';
 import eventsCenter from '../services/EventService';
+import { Resource, ResourceType } from '@ziagl/tiled-map-resources';
+import { CubeCoordinates } from 'honeycomb-grid';
 
 enum Tilenames {
   DEEP_WATER = 'Deep water',
@@ -24,6 +25,7 @@ export class GameMenu extends Scene {
   private tileImage: Phaser.GameObjects.Image;
   private tileName: Phaser.GameObjects.DOMElement;
   private tileInformation: Phaser.GameObjects.DOMElement;
+  private resourceInformation: Phaser.GameObjects.DOMElement;
   private style: any;
 
   private buttonColorDefault = 0xffffff;
@@ -78,6 +80,10 @@ export class GameMenu extends Scene {
       .dom(this.scale.width - 20, 600, 'div', this.style, 'Test das it ein ganz langer text')
       .setOrigin(1, 0);
     this.tileMenu.add(this.tileInformation);
+    this.resourceInformation = this.add
+      .dom(this.scale.width - 20, 800, 'div', this.style, 'Test das it ein ganz langer text')
+      .setOrigin(1, 0);
+    this.tileMenu.add(this.resourceInformation);
     this.tileMenu.visible = false;
 
     // create map buttons
@@ -133,7 +139,41 @@ export class GameMenu extends Scene {
     this.tileName = tileName;
   }
 
-  public setTileInformation(value: string) {
+  public setTileInformation(tile: Phaser.Tilemaps.Tile, coords: CubeCoordinates) {
+    let value = 'Offset: ' +
+                  tile.x +
+                  ',' +
+                  tile.y +
+                  '  Cube: ' +
+                  coords.q +
+                  ',' +
+                  coords.r +
+                  ',' +
+                  coords.s +
+                  '  Index: ' +
+                  tile.index;
     this.tileInformation.setText(value);
+  }
+
+  public setResources(resources: Resource[]) {
+    let resourceString = '';
+    if(resources.length > 0) {
+      if (resources != undefined) {
+        resources.forEach((resource) => {
+          switch (resource.type) {
+            case ResourceType.FOOD:
+              resourceString = resourceString + ' food: ' + resource.amount;
+              break;
+            case ResourceType.GOLD:
+              resourceString = resourceString + ' gold: ' + resource.amount;
+              break;
+            case ResourceType.PRODUCTION:
+              resourceString = resourceString + ' prod: ' + resource.amount;
+              break;
+          }
+        });
+      }
+    }
+    this.resourceInformation.setText(resourceString);
   }
 }
