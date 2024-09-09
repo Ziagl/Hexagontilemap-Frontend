@@ -16,7 +16,7 @@ import { City } from '../models/City.ts';
 import CityUIComponent from '../components/CityUIComponent.ts';
 import { MapTemperature } from '@ziagl/tiled-map-generator/lib/main/enums/MapTemperature';
 import { MapHumidity } from '@ziagl/tiled-map-generator/lib/main/enums/MapHumidity';
-import { ResourceManager, ResourceType } from '@ziagl/tiled-map-resources';
+import { ResourceManager } from '@ziagl/tiled-map-resources';
 import { ResourceGenerator } from '../map/ResourceGenerator.ts';
 import { Utils } from '@ziagl/tiled-map-utils';
 import eventsCenter from '../services/EventService.ts';
@@ -232,6 +232,7 @@ export class Game extends Scene {
       for (let j = 0; j < columns; j++) {
         // terrain layer
         let tile = this.terrainLayer.putTileAt(map[MapLayer.TERRAIN][j + columns * i] - 1, j, i, false);
+        tile.alpha = 0;
         tile.updatePixelXY(); // update pixel that vertical alignment is correct (hexSideLength needs to be set)
         /*const resource = this.add.graphics();
         const tileResources = this.resourceManager.getResources(this.pathFinder.offsetToCube({x: j, y: i}));
@@ -252,6 +253,7 @@ export class Game extends Scene {
         if (map[MapLayer.LANDSCAPE][j + columns * i] !== LandscapeType.NONE) {
           let landscapeTile = this.landscapeLayer.putTileAt(map[MapLayer.LANDSCAPE][j + columns * i] - 1, j, i, false);
           landscapeTile.updatePixelXY();
+          landscapeTile.alpha = 0;
         }
         if (map[MapLayer.RIVERS][j + columns * i] !== WaterFlowType.NONE) {
           // special case for river
@@ -261,6 +263,7 @@ export class Game extends Scene {
             // river layer
             let riverTile = this.landscapeLayer.putTileAt(tileIndex, j, i, false);
             riverTile.updatePixelXY();
+            riverTile.alpha = 0;
           }
         }
         if(this.debug) {
@@ -358,6 +361,7 @@ export class Game extends Scene {
                 uiComponent.updateMovementBar(unit.unitMovement / unit.unitMaxMovement);
                 uiComponent.updateStep();
               }
+              this.computeViewableTiles();
             }
           }
 
@@ -561,6 +565,8 @@ export class Game extends Scene {
         this.riverDebugLayer.visible = this.debugMode;
       }
     });
+
+    this.computeViewableTiles();
   }
 
   update(time: number, delta: number) {
@@ -614,6 +620,49 @@ export class Game extends Scene {
     }
   }
 
+  // fog of war
+  private computeViewableTiles() {
+    // set all tiles fog of war
+    for(let i = 0; i < this.map.height; ++i) {
+      for(let j = 0; j < this.map.width; ++j) {
+        this.terrainLayer.getTileAt(j, i).tint = 0x999999;
+        const landscapeTile = this.landscapeLayer.getTileAt(j, i);
+        if(landscapeTile != undefined) {
+          landscapeTile.tint = 0x999999;
+        }
+      }
+    }
+    // reveal all tiles in sight of units
+    this.unitManager.getUnitsOfPlayer(this.playerId).forEach((unit) => {
+      unit.unitPosition
+      this.pathFinder.reachableTiles(unit.unitPosition, /*unit.unitSightRange*/2, Layers.AIR).forEach((tile) => {
+        const pos = this.pathFinder.cubeToOffset(tile);
+        this.terrainLayer.getTileAt(pos.x, pos.y).alpha = 1;
+        this.terrainLayer.getTileAt(pos.x, pos.y).tint = 0xffffff;
+        const landscapeTile = this.landscapeLayer.getTileAt(pos.x, pos.y);
+        if(landscapeTile != undefined) {
+          landscapeTile.alpha = 1;
+          landscapeTile.tint = 0xffffff;
+        }
+      });
+    });
+    // reveal all tiles in sight of cities
+    this.cityManager.getCitiesOfPlayer(this.playerId).forEach((city) => {
+      city.cityTiles.forEach((tile) => {
+        this.pathFinder.reachableTiles(tile, /*city.citySightRange*/1, Layers.AIR).forEach((tile) => {
+          const pos = this.pathFinder.cubeToOffset(tile);
+          this.terrainLayer.getTileAt(pos.x, pos.y).alpha = 1;
+          this.terrainLayer.getTileAt(pos.x, pos.y).tint = 0xffffff;
+          const landscapeTile = this.landscapeLayer.getTileAt(pos.x, pos.y);
+          if(landscapeTile != undefined) {
+            this.landscapeLayer.getTileAt(pos.x, pos.y).alpha = 1;
+            this.landscapeLayer.getTileAt(pos.x, pos.y).tint = 0xffffff;
+          }
+        });
+      });
+    });
+  }
+
   private createUnit(
     coordinate: { q: number; r: number; s: number },
     offsetCoordinate: { x: number; y: number },
@@ -623,11 +672,12 @@ export class Game extends Scene {
     unitType: UnitType,
     layer: number,
   ) {
-    let tankTile = this.terrainLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
+    let unitTile = this.terrainLayer.getTileAt(offsetCoordinate.x, offsetCoordinate.y);
+
     const unit = new Unit(
       this,
-      tankTile.pixelX + this.tileWidth / 2,
-      tankTile.pixelY + this.tileHeight / 2,
+      unitTile.pixelX + this.tileWidth / 2,
+      unitTile.pixelY + this.tileHeight / 2,
       unitName,
     ).setInteractive(new Phaser.Geom.Circle(16, 17, 16), Phaser.Geom.Circle.Contains);
     unit.unitType = unitType;
@@ -733,6 +783,7 @@ export class Game extends Scene {
         uiComponent.updateBorders();
       }
     });
+    this.computeViewableTiles();
   }
 
   private settlerToCity(unitId: number) {
