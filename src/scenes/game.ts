@@ -77,7 +77,9 @@ export class Game extends Scene {
   private lastSelectedUnit: Unit | undefined = undefined;
   private lastClickedTile: CubeCoordinates | undefined = undefined;
 
-  // debug
+  // flags for map
+  private readonly mapDiscoverable = true; // if activated all tiles are hidden by default and needs to be discovered
+  private readonly fogOfWar = true;        // if activated tiles not in view range are hidden 
   private readonly debug = true;
 
   constructor() {
@@ -99,6 +101,7 @@ export class Game extends Scene {
   preload() {
     // map
     this.load.image('tiles', 'assets/tileset.png');
+    this.load.image('mapbackground', 'assets/map_bg.jpg');
     //this.load.tilemapTiledJSON('map', 'assets/highland.json');
     // units
     this.load.image('plane', 'assets/units/plane/plane_E.png');
@@ -137,6 +140,9 @@ export class Game extends Scene {
     const riverTileDirections = generator.exportRiverTileDirections();
     console.log('map rows ' + rows + ' columns ' + columns);
     generator.print();
+
+    // add tiled background
+    this.add.tileSprite(0, 0, this.tileWidth * columns * 3, this.tileHeight * rows * 3, "mapbackground");
 
     // initialize path finder
     this.pathFinder = new PathFinder(
@@ -232,7 +238,9 @@ export class Game extends Scene {
       for (let j = 0; j < columns; j++) {
         // terrain layer
         let tile = this.terrainLayer.putTileAt(map[MapLayer.TERRAIN][j + columns * i] - 1, j, i, false);
-        tile.alpha = 0;
+        if(this.mapDiscoverable) {
+          tile.alpha = 0;
+        }
         tile.updatePixelXY(); // update pixel that vertical alignment is correct (hexSideLength needs to be set)
         /*const resource = this.add.graphics();
         const tileResources = this.resourceManager.getResources(this.pathFinder.offsetToCube({x: j, y: i}));
@@ -253,7 +261,9 @@ export class Game extends Scene {
         if (map[MapLayer.LANDSCAPE][j + columns * i] !== LandscapeType.NONE) {
           let landscapeTile = this.landscapeLayer.putTileAt(map[MapLayer.LANDSCAPE][j + columns * i] - 1, j, i, false);
           landscapeTile.updatePixelXY();
-          landscapeTile.alpha = 0;
+          if(this.mapDiscoverable) {
+            landscapeTile.alpha = 0;
+          }
         }
         if (map[MapLayer.RIVERS][j + columns * i] !== WaterFlowType.NONE) {
           // special case for river
@@ -263,7 +273,9 @@ export class Game extends Scene {
             // river layer
             let riverTile = this.landscapeLayer.putTileAt(tileIndex, j, i, false);
             riverTile.updatePixelXY();
-            riverTile.alpha = 0;
+            if(this.mapDiscoverable) {
+              riverTile.alpha = 0;
+            }
           }
         }
         if(this.debug) {
@@ -581,9 +593,9 @@ export class Game extends Scene {
     if (tile) {
       this.marker.x = tile.pixelX;
       this.marker.y = tile.pixelY;
-      this.marker.alpha = 1; // sets marker visible
+      this.marker.visible = true; // sets marker visible
     } else {
-      this.marker.alpha = 0; // sets marker invisible
+      this.marker.visible = false; // sets marker invisible
     }
   }
 
@@ -622,13 +634,19 @@ export class Game extends Scene {
 
   // fog of war
   private computeViewableTiles() {
-    // set all tiles fog of war
-    for(let i = 0; i < this.map.height; ++i) {
-      for(let j = 0; j < this.map.width; ++j) {
-        this.terrainLayer.getTileAt(j, i).tint = 0x999999;
-        const landscapeTile = this.landscapeLayer.getTileAt(j, i);
-        if(landscapeTile != undefined) {
-          landscapeTile.tint = 0x999999;
+    // early exit
+    if(!this.fogOfWar && !this.mapDiscoverable) {
+      return;
+    }
+    if(this.fogOfWar) {
+      // set all tiles fog of war
+      for(let i = 0; i < this.map.height; ++i) {
+        for(let j = 0; j < this.map.width; ++j) {
+          this.terrainLayer.getTileAt(j, i).tint = 0x999999;
+          const landscapeTile = this.landscapeLayer.getTileAt(j, i);
+          if(landscapeTile != undefined) {
+            landscapeTile.tint = 0x999999;
+          }
         }
       }
     }

@@ -64,10 +64,6 @@ export default class UnitUIComponent implements IComponent {
     this.movementBar.moveTo(this.gameObject.x - this.barWidth / 2, this.gameObject.y + 19);
   }
 
-  update(dt: number): void {
-    // real time updates
-  }
-
   destroy() {
     this.healthBar.destroy();
     this.movementBar.destroy();
